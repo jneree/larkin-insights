@@ -1,0 +1,182 @@
+/* Shared conversation notes: insights.getlarkin.com. Larkin design system tokens. */
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("/fonts/dm-sans-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("/fonts/dm-sans-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  --surface: #FFFFFF;
+  --surface-raised: #F0F0F0;
+  --card: #FFFFFF;
+  --feature: #151515;
+  --discover: #151515;
+  --line: rgba(21, 21, 21, 0.07);
+  --ink: #151515;
+  --ink-muted: #61615C;
+  --lime: #D2ED28;
+  --on-lime: #151515;
+  --on-dark: #FFFFFF;
+  --on-dark-muted: #A3A39D;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -6px rgba(0, 0, 0, 0.06);
+  --skill-clarity: #3B8F7B;
+  --skill-listening: #00A6D8;
+  --skill-framing: #765DCF;
+  --skill-assertiveness: #D9486B;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #151515;
+    --surface-raised: #222222;
+    --card: #222222;
+    --feature: #0B0B0B;
+    --discover: #0B0B0B;
+    --line: rgba(255, 255, 255, 0.12);
+    --ink: #FFFFFF;
+    --ink-muted: #A3A39D;
+    --shadow: none;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-optical-sizing: auto;
+  font-size: 17px;
+  line-height: 1.53;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4, p, ul, ol { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+a { color: inherit; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 999px; }
+
+.column {
+  width: 100%;
+  max-width: calc(640px + 48px);
+  margin: 0 auto;
+  padding: 0 max(24px, env(safe-area-inset-left)) 0 max(24px, env(safe-area-inset-right));
+}
+
+/* Top bar */
+.bar { padding-top: max(16px, env(safe-area-inset-top)); }
+.bar-inner { display: flex; align-items: center; justify-content: space-between; min-height: 58px; }
+.logo { display: inline-flex; align-items: center; min-height: 44px; border-radius: 6px; }
+.logo img { height: 22px; width: auto; display: block; }
+.logo-dark { display: none !important; }
+@media (prefers-color-scheme: dark) {
+  .logo-light { display: none !important; }
+  .logo-dark { display: block !important; }
+}
+
+/* Buttons: pills, lime with ink. */
+.pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 54px; padding: 0 28px; border: 0; border-radius: 999px;
+  background: var(--lime); color: var(--on-lime);
+  font: 700 16px/24px "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  text-decoration: none; cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.pill:hover { opacity: 0.88; }
+.pill-small { min-height: 42px; padding: 0 18px; font-size: 15px; font-weight: 600; line-height: 22.5px; }
+.pill-quiet { background: var(--surface-raised); color: var(--ink); }
+
+/* Page */
+main.column { padding-top: 36px; padding-bottom: 80px; min-height: 52vh; }
+.status { color: var(--ink-muted); padding: 48px 0; }
+.head { display: grid; gap: 10px; }
+.meta { color: var(--ink-muted); font-size: 15px; line-height: 22px; }
+h1 {
+  font-size: clamp(28px, 6vw, 40px); line-height: 1.12; font-weight: 700; letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+.byline { color: var(--ink-muted); font-size: 15px; line-height: 22px; }
+.summary { margin-top: 10px; }
+.section { margin-top: 44px; display: grid; gap: 14px; }
+h2 { font-size: 20px; line-height: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.state h1 { margin-bottom: 4px; }
+.state p { color: var(--ink-muted); }
+.state .pill { margin-top: 18px; justify-self: start; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+  padding: 23px;
+  display: grid; gap: 16px;
+}
+.card-title { display: flex; align-items: center; gap: 10px; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.card-title::before {
+  content: ""; width: 4px; height: 18px; border-radius: 2px; flex: none;
+  background: var(--bar, var(--ink-muted));
+}
+.caps {
+  color: var(--ink-muted); font-size: 12px; line-height: 16px; font-weight: 700;
+  letter-spacing: 1.2px; text-transform: uppercase;
+}
+.group { display: grid; gap: 10px; }
+.divider { height: 1px; background: var(--line); border: 0; margin: 2px 0; }
+
+.points { display: grid; gap: 10px; }
+.points li {
+  position: relative; padding-left: 18px;
+  font-size: 16px; line-height: 24px; overflow-wrap: anywhere;
+}
+.points li::before {
+  content: ""; position: absolute; left: 1px; top: 9px;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--on-dark-muted);
+}
+.todos li { padding-left: 30px; }
+.todos li::before {
+  left: 0; top: 2px; width: 18px; height: 18px;
+  background: transparent; border: 1.5px solid var(--ink-muted);
+}
+
+/* Try next: the one dark card, lime numbers. */
+.feature {
+  background: var(--feature); color: var(--on-dark);
+  border-radius: 28px; padding: 23px; display: grid; gap: 14px;
+  border: 1px solid var(--line);
+}
+.feature .caps { color: var(--on-dark-muted); }
+.feature ol { display: grid; gap: 12px; counter-reset: next; }
+.feature li {
+  counter-increment: next; display: grid; grid-template-columns: 22px 1fr; gap: 8px;
+  font-size: 16px; line-height: 24px; overflow-wrap: anywhere;
+}
+.feature li::before { content: counter(next); color: var(--lime); font-weight: 700; }
+
+/* Discover Larkin: a dark section. Lime text only here. */
+.discover { background: var(--discover); color: var(--on-dark); padding: 64px 0 72px; }
+.discover .column { display: grid; gap: 16px; justify-items: start; }
+.discover-mark { height: 40px; width: auto; margin-bottom: 8px; }
+.eyebrow { color: var(--lime); font-size: 12px; line-height: 18px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
+.discover h2 { font-size: clamp(30px, 7vw, 44px); line-height: 1.04; letter-spacing: -0.035em; max-width: 14em; }
+.discover-copy { color: var(--on-dark-muted); max-width: 34em; margin-bottom: 8px; }
+.discover a:focus-visible { outline-color: var(--on-dark); }
+
+.foot { background: var(--discover); color: var(--on-dark-muted); padding: 0 0 max(40px, env(safe-area-inset-bottom)); font-size: 13px; line-height: 18px; }
+.foot p { border-top: 1px solid rgba(255, 255, 255, 0.12); padding-top: 22px; }
+
+@media (min-width: 720px) {
+  main.column { padding-top: 56px; }
+  .card, .feature { padding: 28px; }
+}
