@@ -49,7 +49,14 @@ function render(notes) {
   if (typeof notes.summary === "string") head.append(el("p", "summary", notes.summary));
   nodes.push(head);
 
-  if (typeof notes.cameAcross === "string") nodes.push(section("How you came across", el("p", null, notes.cameAcross)));
+  const overview = texts(notes.overview);
+  if (overview.length) nodes.push(section("How the conversation went", list(overview, "points")));
+
+  // The sharer's own coaching is written to them ("you"), so its headings name them.
+  const name = typeof notes.sharedBy === "string" ? notes.sharedBy : null;
+  if (typeof notes.cameAcross === "string") {
+    nodes.push(section(name ? `How ${name} came across` : "How they came across", el("p", null, notes.cameAcross)));
+  }
 
   const areas = Array.isArray(notes.insights) ? notes.insights : [];
   const tryNext = texts(notes.tryNext);
@@ -75,7 +82,7 @@ function render(notes) {
       card.append(el("h3", "caps", "Try next"), ol);
       cards.push(card);
     }
-    nodes.push(section("Insights", ...cards));
+    nodes.push(section(name ? `Insights for ${name}` : "Their insights", ...cards));
   }
 
   const groups = notes.notes && typeof notes.notes === "object"
@@ -100,6 +107,15 @@ function render(notes) {
     card.append(list(todos, "points todos"));
     nodes.push(section("To-dos", card));
   }
+
+  // The hook: what Larkin would give the reader, about themselves, privately.
+  const hook = el("aside", "hook");
+  const cta = el("a", "pill pill-ink", "Get Larkin");
+  cta.href = "https://getlarkin.com/?utm_source=shared-notes&utm_medium=link&utm_content=hook";
+  hook.append(el("h2", null, "How did you come across?"),
+    el("p", null, "Larkin writes notes like these from every conversation, and gives you a private read on how you came across: what worked, what slipped and what to try next."),
+    cta);
+  nodes.push(hook);
 
   document.title = `${notes.title} · Larkin`;
   show(...nodes);

@@ -164,6 +164,17 @@ h2 { font-size: 20px; line-height: 26px; font-weight: 700; letter-spacing: -0.01
 }
 .feature li::before { content: counter(next); color: var(--lime); font-weight: 700; }
 
+/* The hook: the page's one lime card, ink text and an ink button. Lime sits on white or dark. */
+.hook {
+  margin-top: 48px; padding: 28px; border-radius: 28px;
+  background: var(--lime); color: var(--on-lime);
+  display: grid; gap: 10px; justify-items: start;
+}
+.hook h2 { font-size: 24px; line-height: 1.15; letter-spacing: -0.02em; }
+.hook p { color: var(--on-lime); max-width: 34em; }
+.pill-ink { background: var(--on-lime); color: #FFFFFF; margin-top: 10px; }
+.hook a:focus-visible { outline-color: var(--on-lime); }
+
 /* Discover Larkin: a dark section. Lime text only here. */
 .discover { background: var(--discover); color: var(--on-dark); padding: 64px 0 72px; }
 .discover .column { display: grid; gap: 16px; justify-items: start; }
