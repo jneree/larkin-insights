@@ -22,6 +22,13 @@ function list(items, className) {
 function texts(value) {
   return Array.isArray(value) ? value.filter(item => typeof item === "string" && item.trim()) : [];
 }
+// Insight points: plain text (older links) or { text, why, next }.
+function points(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map(item => typeof item === "string" ? { text: item } : item)
+    .filter(item => item && typeof item.text === "string" && item.text.trim())
+    .map(item => ({ text: item.text, why: typeof item.why === "string" ? item.why : null, next: typeof item.next === "string" ? item.next : null }));
+}
 function section(title, ...children) {
   const node = el("section", "section");
   node.append(el("h2", null, title), ...children);
@@ -67,11 +74,41 @@ function render(notes) {
       const title = el("h3", "card-title", area.title);
       if (SKILLS.has(area.area)) title.style.setProperty("--bar", `var(--skill-${area.area})`);
       card.append(title);
-      for (const [label, items] of [["What worked", texts(area.worked)], ["What slipped", texts(area.slipped)]]) {
+      let hasMore = false;
+      for (const [label, items] of [["What worked", points(area.worked)], ["What slipped", points(area.slipped)]]) {
         if (!items.length) continue;
+        const ul = el("ul", "points");
+        for (const point of items) {
+          const li = el("li");
+          li.append(el("span", null, point.text));
+          if (point.why || point.next) {
+            hasMore = true;
+            const more = el("div", "more");
+            if (point.why) more.append(el("p", null, point.why));
+            if (point.next) {
+              const next = el("p", "next");
+              next.append(el("strong", null, "Next time: "), document.createTextNode(point.next));
+              more.append(next);
+            }
+            li.append(more);
+          }
+          ul.append(li);
+        }
         const group = el("div", "group");
-        group.append(el("h4", "caps", label), list(items, "points"));
+        group.append(el("h4", "caps", label), ul);
         card.append(group);
+      }
+      // "See more" opens every point's why and next time in place, like Tell me more in the app.
+      if (hasMore) {
+        const toggle = el("button", "see-more", "See more");
+        toggle.type = "button";
+        toggle.setAttribute("aria-expanded", "false");
+        toggle.addEventListener("click", () => {
+          const open = card.classList.toggle("open");
+          toggle.textContent = open ? "See less" : "See more";
+          toggle.setAttribute("aria-expanded", String(open));
+        });
+        card.append(el("hr", "divider"), toggle);
       }
       cards.push(card);
     }
