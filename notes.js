@@ -138,6 +138,21 @@ function render(notes) {
     nodes.push(section("Notes", card));
   }
 
+  // Larkin's take: its suggestions to the sharer on the main problems discussed.
+  const take = Array.isArray(notes.take)
+    ? notes.take.filter(item => item && typeof item.topic === "string" && typeof item.suggestion === "string")
+    : [];
+  if (take.length) {
+    const card = el("div", "card");
+    take.forEach((item, index) => {
+      if (index > 0) card.append(el("hr", "divider"));
+      const group = el("div", "take");
+      group.append(el("h3", "take-topic", item.topic), el("p", "take-text", item.suggestion));
+      card.append(group);
+    });
+    nodes.push(section("Larkin’s take", card));
+  }
+
   const todos = texts(notes.todos);
   if (todos.length) {
     const card = el("div", "card");
