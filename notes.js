@@ -47,7 +47,133 @@ function state(title, message, action) {
   show(node);
 }
 
+// A shared report (kind "report", 9 October 2026): the person's month with Larkin, only the parts
+// about them (title, numbers, rhythm, how they talk, contradictions, fun facts, line of the month).
+// Always dark, like the report in the app.
+function eyebrow(text) { return el("p", "caps report-eyebrow", text); }
+function block(...children) {
+  const node = el("section", "report-section");
+  node.append(...children);
+  return node;
+}
+function str(value) { return typeof value === "string" && value.trim() ? value : null; }
+
+function renderReport(report) {
+  document.body.classList.add("report");
+  for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.content = "#151515";
+  const who = str(report.sharedBy);
+  const nodes = [];
+
+  const hero = el("header", "report-hero");
+  const dot = el("span", "report-dot"); dot.setAttribute("aria-hidden", "true");
+  hero.append(dot, eyebrow(`${who ? `${who}’s` : "A"} ${str(report.month) ?? "month"} with Larkin`),
+    el("h1", "report-title", `${report.title}.`));
+  if (str(report.subtitle)) hero.append(el("p", "report-lead", report.subtitle));
+  if (str(report.when)) hero.append(el("p", "report-when", report.when));
+  nodes.push(hero);
+
+  const measured = Array.isArray(report.measured) ? report.measured.filter(r => str(r?.number) && str(r?.label)) : [];
+  if (measured.length) {
+    const rows = el("div", "report-stats");
+    for (const row of measured) {
+      const item = el("div", "report-stat");
+      item.append(el("p", "report-number", row.number), el("p", null, row.label));
+      rows.append(item);
+    }
+    nodes.push(block(eyebrow("The month, measured"), rows));
+  }
+
+  const rhythm = report.rhythm && typeof report.rhythm === "object" ? report.rhythm : null;
+  if (rhythm && str(rhythm.title)) {
+    const hours = Array.isArray(rhythm.hours) && rhythm.hours.length === 24 ? rhythm.hours.map(h => Number(h) || 0) : [];
+    const children = [eyebrow("Rhythm"), el("h2", "report-heading", `${rhythm.title}.`)];
+    if (str(rhythm.line)) children.push(el("p", "report-lead", rhythm.line));
+    if (hours.length) {
+      const peak = Math.max(1, ...hours);
+      const chart = el("div", "report-chart");
+      chart.setAttribute("role", "img");
+      chart.setAttribute("aria-label", "Words by hour of the day");
+      for (let k = 0; k < 24; k++) {
+        const hour = (k + 6) % 24, words = hours[hour];
+        const bar = el("span", hour >= 23 || hour < 3 ? "bar late" : "bar");
+        bar.style.height = `${Math.max(2, Math.round(words / peak * 100))}%`;
+        if (!words) bar.classList.add("empty");
+        chart.append(bar);
+      }
+      const axis = el("div", "report-axis");
+      axis.setAttribute("aria-hidden", "true");
+      for (const label of ["6 am", "noon", "6 pm", "midnight", "6 am"]) axis.append(el("span", null, label));
+      children.push(chart, axis);
+    }
+    nodes.push(block(...children));
+  }
+
+  const style = report.style && typeof report.style === "object" ? report.style : null;
+  if (style && str(style.headline)) {
+    const children = [eyebrow(who ? `How ${who} talks` : "How they talk"), el("h2", "report-heading", style.headline)];
+    const scales = el("div", "report-scales");
+    for (const area of Array.isArray(style.areas) ? style.areas : []) {
+      if (!str(area?.title)) continue;
+      const scale = el("div", "report-scale");
+      const track = el("div", "track");
+      if (typeof area.position === "number") {
+        const point = el("span", "point");
+        point.style.left = `calc(${Math.min(1, Math.max(0, area.position)) * 100}% - ${area.position * 14}px)`;
+        track.append(point);
+      }
+      const ends = el("div", "ends");
+      ends.append(el("span", null, area.left ?? ""), el("span", null, area.right ?? ""));
+      scale.append(el("p", "scale-title", area.title), track, ends);
+      scales.append(scale);
+    }
+    children.push(scales);
+    if (str(style.quote)) children.push(el("p", "report-quote", `“${style.quote}”`));
+    nodes.push(block(...children));
+  }
+
+  const contradictions = Array.isArray(report.contradictions) ? report.contradictions.filter(c => str(c?.claim) && str(c?.twist)) : [];
+  contradictions.forEach((item, index) => {
+    const children = [eyebrow(`${who ?? "They"}, in contradiction · ${index + 1} of ${contradictions.length}`),
+      el("h2", "report-heading report-claim", item.claim), el("p", "report-twist", item.twist)];
+    if (str(item.context)) children.push(el("p", "report-context", item.context));
+    nodes.push(block(...children));
+  });
+
+  const facts = Array.isArray(report.funFacts) ? report.funFacts.filter(f => str(f?.number) && str(f?.text)) : [];
+  if (facts.length) {
+    const rows = el("div", "report-facts");
+    for (const fact of facts) {
+      const row = el("div", "report-fact");
+      row.append(el("p", "report-number", fact.number), el("p", null, fact.text));
+      rows.append(row);
+    }
+    nodes.push(block(eyebrow("Fun facts"), el("h2", "report-heading", "Things only Larkin noticed."), rows));
+  }
+
+  if (report.line && str(report.line.quote)) {
+    const children = [eyebrow("Line of the month"), el("p", "report-line", `“${report.line.quote}”`)];
+    if (str(report.line.context)) children.push(el("p", "report-context", report.line.context));
+    nodes.push(block(...children));
+  }
+
+  const hook = el("aside", "hook");
+  const cta = el("a", "pill pill-ink", "Get Larkin");
+  cta.href = "https://getlarkin.com/?utm_source=shared-report&utm_medium=link&utm_content=hook";
+  hook.append(el("h2", null, "What would your month say about you?"),
+    el("p", null, "Larkin listens to your day and tells you what your conversations say: your rhythm, how you talk, and the lines worth keeping."),
+    cta);
+  nodes.push(hook);
+
+  const discover = document.querySelector(".discover .eyebrow");
+  if (discover) discover.textContent = "This report was written by Larkin";
+  const foot = document.querySelector(".foot p");
+  if (foot) foot.textContent = "The person who shared this report chose to and can stop at any time. It never shows who they talked with or what was said.";
+  document.title = `${report.title} · Larkin`;
+  show(...nodes);
+}
+
 function render(notes) {
+  if (notes.kind === "report") return renderReport(notes);
   const nodes = [];
   const head = el("header", "head");
   if (typeof notes.when === "string") head.append(el("p", "meta", notes.when));
