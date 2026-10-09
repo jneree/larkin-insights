@@ -50,6 +50,13 @@ function state(title, message, action) {
 // A shared report (kind "report", 9 October 2026): the person's month with Larkin, only the parts
 // about them (title, numbers, rhythm, how they talk, contradictions, fun facts, line of the month).
 // Always dark, like the report in the app.
+// A shared report (Julien, 9 October 2026; Figma "Oct 9 Report visuals (Claude)", Option 2): the
+// app's page, section by section on alternating blacks. A graphic only where it explains faster
+// than words, each moving once as its section scrolls into view; still when motion is reduced.
+const QUIET = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const SPELLED = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+const onShow = new WeakMap();
+
 function eyebrow(text) { return el("p", "caps report-eyebrow", text); }
 function block(...children) {
   const node = el("section", "report-section");
@@ -57,37 +64,104 @@ function block(...children) {
   return node;
 }
 function str(value) { return typeof value === "string" && value.trim() ? value : null; }
+function spelled(number) { return number <= 12 ? SPELLED[number] : String(number); }
+function capitalised(text) { return text.charAt(0).toUpperCase() + text.slice(1); }
+function later(section, action) { onShow.set(section, [...(onShow.get(section) ?? []), action]); }
+
+/// "6h 50m" or "45m" in minutes; null for anything else.
+function minutesOf(text) {
+  const match = /^(?:(\d+)h\s*)?(\d+)m$/.exec(text.trim());
+  return match ? Number(match[1] ?? 0) * 60 + Number(match[2]) : null;
+}
+
+/// Every run of digits grown to `progress`, keeping its zero padding: "6h 50m" at half is "3h 25m".
+function counted(text, progress) {
+  return text.replace(/\d+/g, digits => {
+    const value = String(Math.round(Number(digits) * progress));
+    return digits.length > 1 && digits[0] === "0" ? value.padStart(digits.length, "0") : value;
+  });
+}
+
+/// A big number that counts up from zero when its section shows.
+function number(section, text, className, duration = 800) {
+  const node = el("p", `report-number${className ? ` ${className}` : ""}`, text);
+  node.setAttribute("aria-label", text);
+  if (!QUIET && /\d/.test(text)) {
+    node.textContent = counted(text, 0);
+    later(section, () => {
+      const start = performance.now();
+      const frame = now => {
+        const t = Math.min(1, (now - start) / duration);
+        node.textContent = t < 1 ? counted(text, 1 - Math.pow(1 - t, 3)) : text;
+        if (t < 1) requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    });
+  }
+  return node;
+}
+
+function bar(fraction, tone, index = 0) {
+  const track = el("div", "report-bar");
+  const fill = el("span", tone);
+  fill.style.setProperty("--w", `${Math.max(0, Math.min(1, fraction)) * 100}%`);
+  fill.style.setProperty("--i", String(index));
+  track.append(fill);
+  track.setAttribute("aria-hidden", "true");
+  return track;
+}
+
+function quoteCard(quote, who) {
+  const card = el("figure", "report-quote-card");
+  const mark = el("span", "report-mark", "“");
+  mark.setAttribute("aria-hidden", "true");
+  card.append(mark, el("blockquote", null, quote));
+  if (who) card.append(el("figcaption", null, who));
+  return card;
+}
 
 function renderReport(report) {
   document.body.classList.add("report");
+  if (!QUIET) document.body.classList.add("motion");
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.content = "#151515";
   const who = str(report.sharedBy);
   const nodes = [];
 
-  const hero = el("header", "report-hero");
+  const hero = block();
+  hero.classList.add("report-hero");
   const dot = el("span", "report-dot"); dot.setAttribute("aria-hidden", "true");
   hero.append(dot, eyebrow(`${who ? `${who}’s` : "A"} ${str(report.month) ?? "month"} with Larkin`),
     el("h1", "report-title", `${report.title}.`));
-  if (str(report.subtitle)) hero.append(el("p", "report-lead", report.subtitle));
-  if (str(report.when)) hero.append(el("p", "report-when", report.when));
+  if (str(report.subtitle)) hero.append(el("p", "report-text report-muted", report.subtitle));
+  if (str(report.when)) hero.append(el("p", "report-small", report.when));
   nodes.push(hero);
 
-  const measured = Array.isArray(report.measured) ? report.measured.filter(r => str(r?.number) && str(r?.label)) : [];
-  if (measured.length) {
-    const rows = el("div", "report-stats");
-    for (const row of measured) {
-      const item = el("div", "report-stat");
-      item.append(el("p", "report-number", row.number), el("p", null, row.label));
+  // Time with people, with an AI and of videos nearby: numbers count up while their bars grow.
+  const durations = (Array.isArray(report.measured) ? report.measured : [])
+    .filter(r => str(r?.number) && str(r?.label) && minutesOf(r.number) !== null);
+  if (durations.length) {
+    const section = block();
+    const total = durations.reduce((sum, r) => sum + minutesOf(r.number), 0);
+    const longest = Math.max(1, ...durations.map(r => minutesOf(r.number)));
+    const rows = el("div", "report-rows");
+    durations.forEach((row, index) => {
+      const item = el("div", "report-row");
+      const tone = /\bAI\b/.test(row.label) ? "lime" : /video/.test(row.label) ? "muted" : "white";
+      item.append(number(section, row.number, "white"), bar(minutesOf(row.number) / longest, tone, index), el("p", "report-small", row.label));
       rows.append(item);
-    }
-    nodes.push(block(eyebrow("The month, measured"), rows));
+    });
+    section.append(eyebrow("The month, measured"),
+      el("h2", "report-heading", `${capitalised(spelled(Math.max(1, Math.round(total / 60))))} hours of ${who ? `${who}’s` : "their"} life, heard.`),
+      rows);
+    nodes.push(section);
   }
 
+  // The day plays back: bars rise in order from 6 am, the late ones last.
   const rhythm = report.rhythm && typeof report.rhythm === "object" ? report.rhythm : null;
   if (rhythm && str(rhythm.title)) {
     const hours = Array.isArray(rhythm.hours) && rhythm.hours.length === 24 ? rhythm.hours.map(h => Number(h) || 0) : [];
-    const children = [eyebrow("Rhythm"), el("h2", "report-heading", `${rhythm.title}.`)];
-    if (str(rhythm.line)) children.push(el("p", "report-lead", rhythm.line));
+    const section = block(eyebrow("Rhythm"), el("h2", "report-heading", `${rhythm.title}.`));
+    if (str(rhythm.line)) section.append(el("p", "report-text", rhythm.line));
     if (hours.length) {
       const peak = Math.max(1, ...hours);
       const chart = el("div", "report-chart");
@@ -95,65 +169,95 @@ function renderReport(report) {
       chart.setAttribute("aria-label", "Words by hour of the day");
       for (let k = 0; k < 24; k++) {
         const hour = (k + 6) % 24, words = hours[hour];
-        const bar = el("span", hour >= 23 || hour < 3 ? "bar late" : "bar");
-        bar.style.height = `${Math.max(2, Math.round(words / peak * 100))}%`;
-        if (!words) bar.classList.add("empty");
-        chart.append(bar);
+        const item = el("span", hour >= 23 || hour < 3 ? "late" : "");
+        if (!words) item.classList.add("empty");
+        item.style.setProperty("--h", `${Math.max(3, Math.round(words / peak * 120))}px`);
+        item.style.setProperty("--i", String(k));
+        chart.append(item);
       }
       const axis = el("div", "report-axis");
       axis.setAttribute("aria-hidden", "true");
-      for (const label of ["6 am", "noon", "6 pm", "midnight", "6 am"]) axis.append(el("span", null, label));
-      children.push(chart, axis);
+      for (const label of ["6 am", "noon", "6 pm", "midnight"]) axis.append(el("span", null, label));
+      section.append(chart, axis);
     }
-    nodes.push(block(...children));
+    nodes.push(section);
   }
 
+  // Four scales; each dot slides from the middle to where the person sits, the side they lean to in white.
   const style = report.style && typeof report.style === "object" ? report.style : null;
   if (style && str(style.headline)) {
-    const children = [eyebrow(who ? `How ${who} talks` : "How they talk"), el("h2", "report-heading", style.headline)];
+    const section = block(eyebrow(who ? `How ${who} talks` : "How they talk"), el("h2", "report-heading", style.headline));
     const scales = el("div", "report-scales");
     for (const area of Array.isArray(style.areas) ? style.areas : []) {
       if (!str(area?.title)) continue;
       const scale = el("div", "report-scale");
       const track = el("div", "track");
-      if (typeof area.position === "number") {
+      const position = typeof area.position === "number" ? Math.min(1, Math.max(0, area.position)) : null;
+      if (position !== null) {
         const point = el("span", "point");
-        point.style.left = `calc(${Math.min(1, Math.max(0, area.position)) * 100}% - ${area.position * 14}px)`;
+        point.style.setProperty("--p", String(position));
         track.append(point);
       }
       const ends = el("div", "ends");
-      ends.append(el("span", null, area.left ?? ""), el("span", null, area.right ?? ""));
+      const left = el("span", position !== null && position < 0.5 ? "lean" : null, area.left ?? "");
+      const right = el("span", position !== null && position >= 0.5 ? "lean" : null, area.right ?? "");
+      ends.append(left, right);
       scale.append(el("p", "scale-title", area.title), track, ends);
       scales.append(scale);
     }
-    children.push(scales);
-    if (str(style.quote)) children.push(el("p", "report-quote", `“${style.quote}”`));
-    nodes.push(block(...children));
+    section.append(scales);
+    if (str(style.quote)) section.append(quoteCard(style.quote, who));
+    nodes.push(section);
   }
 
+  // Each contradiction on its own card; the lime line lands after the first, like a punchline.
   const contradictions = Array.isArray(report.contradictions) ? report.contradictions.filter(c => str(c?.claim) && str(c?.twist)) : [];
-  contradictions.forEach((item, index) => {
-    const children = [eyebrow(`${who ?? "They"}, in contradiction · ${index + 1} of ${contradictions.length}`),
-      el("h2", "report-heading report-claim", item.claim), el("p", "report-twist", item.twist)];
-    if (str(item.context)) children.push(el("p", "report-context", item.context));
-    nodes.push(block(...children));
-  });
+  if (contradictions.length) {
+    const section = block(eyebrow(`${who ?? "They"}, in contradiction`));
+    contradictions.forEach((item, index) => {
+      const card = el("article", "report-card");
+      const twist = el("p", "report-heading report-twist", item.twist);
+      twist.style.setProperty("--i", String(index));
+      card.append(el("h2", "report-heading", item.claim), twist);
+      if (str(item.context)) card.append(el("p", "report-caption", item.context));
+      section.append(card);
+    });
+    nodes.push(section);
+  }
 
+  // Numbers count up, fast: the count itself is the joke.
   const facts = Array.isArray(report.funFacts) ? report.funFacts.filter(f => str(f?.number) && str(f?.text)) : [];
   if (facts.length) {
+    const section = block(eyebrow("Fun facts"), el("h2", "report-heading", "Things only Larkin noticed."));
     const rows = el("div", "report-facts");
     for (const fact of facts) {
       const row = el("div", "report-fact");
-      row.append(el("p", "report-number", fact.number), el("p", null, fact.text));
+      row.append(number(section, fact.number, null, 1000), el("p", "report-text", fact.text));
       rows.append(row);
     }
-    nodes.push(block(eyebrow("Fun facts"), el("h2", "report-heading", "Things only Larkin noticed."), rows));
+    section.append(rows);
+    nodes.push(section);
   }
 
+  // The quote writes itself in, word by word: the page's only typing.
   if (report.line && str(report.line.quote)) {
-    const children = [eyebrow("Line of the month"), el("p", "report-line", `“${report.line.quote}”`)];
-    if (str(report.line.context)) children.push(el("p", "report-context", report.line.context));
-    nodes.push(block(...children));
+    const section = block(eyebrow("Line of the month"));
+    section.classList.add("report-line-section");
+    const mark = el("span", "report-mark", "“");
+    mark.setAttribute("aria-hidden", "true");
+    const quote = el("p", "report-line");
+    quote.setAttribute("aria-label", report.line.quote);
+    const words = report.line.quote.trim().split(/\s+/);
+    words.forEach((word, index) => {
+      if (index > 0) quote.append(document.createTextNode(" "));
+      const span = el("span", "word", word);
+      span.setAttribute("aria-hidden", "true");
+      quote.append(span);
+    });
+    later(section, () => quote.querySelectorAll(".word").forEach((span, index) => setTimeout(() => span.classList.add("on"), 110 * (index + 1))));
+    section.append(mark, quote);
+    if (str(report.line.context)) section.append(el("p", "report-small", report.line.context));
+    nodes.push(section);
   }
 
   const hook = el("aside", "hook");
@@ -170,6 +274,25 @@ function renderReport(report) {
   if (foot) foot.textContent = "The person who shared this report chose to and can stop at any time. It never shows who they talked with or what was said.";
   document.title = `${report.title} · Larkin`;
   show(...nodes);
+  reveal(nodes.filter(node => node.classList.contains("report-section")));
+}
+
+/// Marks each section shown once 30% of it is on screen, and starts its counts and typing.
+function reveal(sections) {
+  const play = section => {
+    if (section.classList.contains("shown")) return;
+    section.classList.add("shown");
+    for (const action of onShow.get(section) ?? []) action();
+  };
+  if (QUIET || !("IntersectionObserver" in window)) { sections.forEach(section => section.classList.add("shown")); return; }
+  const observer = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      play(entry.target);
+      observer.unobserve(entry.target);
+    }
+  }, { threshold: 0.3 });
+  sections.forEach(section => observer.observe(section));
 }
 
 function render(notes) {

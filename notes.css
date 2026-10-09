@@ -229,39 +229,86 @@ body.report {
 body.report .logo-light { display: none !important; }
 body.report .logo-dark { display: block !important; }
 body.report .pill-small { background: var(--lime); color: var(--on-lime); }
-.report-hero { display: grid; gap: 14px; }
-.report-dot { width: 28px; height: 28px; border-radius: 50%; background: var(--lime); margin-bottom: 14px; }
+/* Option 2 (Julien, 9 October; Figma "Oct 9 Report visuals (Claude)"): each section an eyebrow, one
+   title, one short text and at most one card, full width on alternating blacks. */
+body.report main.column { padding-top: 0; padding-bottom: 0; }
+.report-section {
+  display: grid; gap: 20px; padding: 80px 0;
+  background: #151515; box-shadow: 0 0 0 100vmax #151515; clip-path: inset(0 -100vmax);
+}
+.report-section:nth-child(even) { background: #0B0B0B; box-shadow: 0 0 0 100vmax #0B0B0B; }
+.report-hero { gap: 24px; padding-top: 48px; }
+.report-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--lime); }
 .report-eyebrow { color: var(--ink-muted); }
 /* Semibold and tightly set, like the app's titles (Julien, 9 October). */
-.report-title {
-  font-size: clamp(34px, 9vw, 44px); line-height: 1.12; letter-spacing: -0.02em; font-weight: 600; overflow-wrap: break-word;
+.report-title { font-size: clamp(34px, 6vw, 40px); line-height: 1.12; letter-spacing: -0.02em; font-weight: 600; overflow-wrap: break-word; }
+.report-heading { font-size: clamp(26px, 5vw, 30px); line-height: 1.15; letter-spacing: -0.015em; font-weight: 600; overflow-wrap: break-word; }
+.report-text { font-size: 17px; line-height: 24px; }
+/* Never one word alone on a last line (Julien, 9 October). */
+.report-title, .report-heading, .report-text, .report-line, .report-quote-card blockquote { text-wrap: pretty; }
+.report-muted, .report-small, .report-caption { color: var(--ink-muted); }
+.report-small { font-size: 15px; line-height: 21px; }
+.report-caption { font-size: 13px; line-height: 18px; }
+.report-number {
+  color: var(--lime); font-size: 40px; line-height: 44px; font-weight: 600; letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
 }
-.report-lead { color: var(--ink-muted); font-size: 19px; line-height: 28px; }
-.report-when { color: var(--ink-muted); font-size: 15px; line-height: 22px; }
-.report-section { margin-top: 72px; display: grid; gap: 14px; }
-.report-heading { font-size: clamp(26px, 7vw, 32px); line-height: 1.16; letter-spacing: -0.015em; font-weight: 600; overflow-wrap: break-word; }
-.report-stats { display: grid; gap: 18px; margin-top: 14px; }
-.report-number { color: var(--lime); font-size: 34px; line-height: 1.12; font-weight: 600; letter-spacing: -0.02em; }
-.report-chart { display: flex; align-items: flex-end; gap: 4px; height: 180px; margin-top: 18px; }
-.report-chart .bar { flex: 1; border-radius: 3px; background: rgba(255, 255, 255, 0.35); }
-.report-chart .bar.late { background: var(--lime); }
-.report-chart .bar.empty { background: rgba(255, 255, 255, 0.12); }
-.report-axis { display: flex; justify-content: space-between; color: var(--ink-muted); font-size: 13px; font-weight: 500; }
-.report-scales { display: grid; gap: 26px; margin-top: 14px; }
+.report-number.white { color: var(--ink); }
+
+.report-rows { display: grid; gap: 24px; }
+.report-row { display: grid; gap: 8px; }
+.report-bar { height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.report-bar span { display: block; height: 100%; width: var(--w); min-width: 10px; border-radius: inherit; background: var(--ink); }
+.report-bar .lime { background: var(--lime); }
+.report-bar .muted { background: var(--ink-muted); }
+
+.report-chart { display: flex; align-items: flex-end; gap: 5px; height: 120px; }
+.report-chart span { flex: 1; height: var(--h); border-radius: 999px; background: rgba(255, 255, 255, 0.5); }
+.report-chart .late { background: var(--lime); }
+.report-chart .empty { background: rgba(255, 255, 255, 0.15); }
+.report-axis { display: grid; grid-template-columns: repeat(4, 1fr); color: var(--ink-muted); font-size: 12px; font-weight: 500; }
+
+.report-scales { display: grid; gap: 36px; padding-top: 12px; }
 .report-scale { display: grid; gap: 10px; }
-.scale-title { font-size: 17px; font-weight: 600; }
-.report-scale .track { position: relative; height: 14px; }
-.report-scale .track::before { content: ""; position: absolute; left: 0; right: 0; top: 6px; height: 2px; border-radius: 1px; background: rgba(255, 255, 255, 0.2); }
-.report-scale .point { position: absolute; top: 0; width: 14px; height: 14px; border-radius: 50%; background: var(--lime); }
-.report-scale .ends { display: flex; justify-content: space-between; color: var(--ink-muted); font-size: 13px; font-weight: 500; }
-.report-quote { color: var(--lime); font-size: 20px; line-height: 1.3; font-weight: 600; letter-spacing: -0.005em; margin-top: 8px; }
-.report-claim { font-size: clamp(28px, 7.5vw, 34px); line-height: 1.14; }
-.report-twist { color: var(--lime); font-size: clamp(22px, 6vw, 26px); line-height: 1.22; font-weight: 600; letter-spacing: -0.01em; }
-.report-context { color: var(--ink-muted); font-size: 15px; line-height: 22px; font-weight: 500; }
-/* The numbers share one column as wide as the widest, each centred on its words. */
-.report-facts { display: grid; grid-template-columns: max-content 1fr; column-gap: 16px; row-gap: 24px; align-items: center; margin-top: 14px; }
-.report-fact { display: contents; }
-.report-fact .report-number { font-size: 28px; }
-.report-fact p:last-child { font-size: 17px; line-height: 24px; font-weight: 500; }
-.report-line { color: var(--lime); font-size: clamp(28px, 7.5vw, 34px); line-height: 1.14; font-weight: 600; letter-spacing: -0.015em; }
-body.report .hook { margin-top: 72px; }
+.scale-title { font-size: 17px; line-height: 22px; font-weight: 600; }
+.report-scale .track { position: relative; height: 16px; }
+.report-scale .track::before { content: ""; position: absolute; left: 0; right: 0; top: 7px; height: 2px; border-radius: 1px; background: rgba(255, 255, 255, 0.18); }
+.report-scale .point { position: absolute; top: 0; left: calc(var(--p) * (100% - 16px)); width: 16px; height: 16px; border-radius: 50%; background: var(--lime); }
+.report-scale .ends { display: flex; justify-content: space-between; gap: 12px; color: var(--ink-muted); font-size: 13px; }
+.report-scale .ends .lean { color: var(--ink); }
+
+/* The section's one lime card: a quote in ink. */
+.report-quote-card { margin: 12px 0 0; padding: 28px; border-radius: 34px; background: var(--lime); color: var(--on-lime); display: grid; gap: 10px; }
+.report-quote-card .report-mark { color: var(--on-lime); font-size: 88px; height: 44px; }
+.report-quote-card blockquote { margin: 0; font-size: 22px; line-height: 27px; font-weight: 600; letter-spacing: -0.01em; }
+.report-quote-card figcaption { font-size: 13px; line-height: 18px; opacity: 0.7; }
+.report-mark { display: block; font-weight: 600; line-height: 1; overflow: hidden; }
+
+.report-card { padding: 28px; border-radius: 34px; background: #222222; display: grid; gap: 12px; }
+.report-twist { color: var(--lime); }
+
+.report-facts { display: grid; gap: 28px; }
+.report-fact { display: grid; gap: 2px; }
+
+.report-line-section { padding: 96px 0; gap: 16px; }
+.report-line-section .report-mark { color: var(--lime); font-size: 120px; height: 60px; }
+.report-line { color: var(--lime); font-size: clamp(34px, 6vw, 40px); line-height: 1.12; font-weight: 600; letter-spacing: -0.02em; }
+body.report .hook { margin: 48px 0 80px; }
+
+/* Motion, once per section as it scrolls into view; none when the reader asks for less. */
+body.motion .report-bar span { transition: width 0.8s ease-out calc(var(--i) * 0.08s); }
+body.motion .report-section:not(.shown) .report-bar span { width: 0; min-width: 0; }
+body.motion .report-chart span { transition: height 0.45s ease-out calc(var(--i) * 0.04s); }
+body.motion .report-section:not(.shown) .report-chart span { height: 3px; }
+body.motion .report-scale .point { transition: left 0.8s cubic-bezier(0.34, 1.3, 0.64, 1); }
+body.motion .report-section:not(.shown) .report-scale .point { left: calc(0.5 * (100% - 16px)); }
+body.motion .report-quote-card, body.motion .report-twist { transition: opacity 0.5s ease-out 0.3s; }
+body.motion .report-twist { transition-delay: calc(0.5s + var(--i) * 0.4s); }
+body.motion .report-section:not(.shown) .report-quote-card,
+body.motion .report-section:not(.shown) .report-twist { opacity: 0; }
+body.motion .report-hero > :not(.report-dot) { transition: opacity 0.6s ease-out 0.5s; }
+body.motion .report-hero:not(.shown) > :not(.report-dot) { opacity: 0; }
+body.motion .report-hero.shown .report-dot { animation: report-pulse 0.7s ease-in-out; }
+body.motion .report-line .word { opacity: 0; transition: opacity 0.2s ease-out; }
+body.motion .report-line .word.on { opacity: 1; }
+@keyframes report-pulse { 50% { transform: scale(1.7); } }
