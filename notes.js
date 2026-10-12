@@ -33,19 +33,24 @@ function points(value) {
 const KINDS = new Set(["conversation", "insight", "you", "focus", "todo"]);
 function tile(kind, title, ...children) {
   const node = el("section", "tile");
-  const head = el("div", "tile-head");
-  if (KINDS.has(kind)) {
-    const icon = el("img");
-    icon.src = `/images/kind-${kind}.svg`;
-    icon.alt = "";
-    icon.width = 28;
-    icon.height = 28;
-    head.append(icon);
+  // Under a heading that already names it, a tile has no icon or name (13 October 2026).
+  if (title) {
+    const head = el("div", "tile-head");
+    if (KINDS.has(kind)) {
+      const icon = el("img");
+      icon.src = `/images/kind-${kind}.svg`;
+      icon.alt = "";
+      icon.width = 28;
+      icon.height = 28;
+      head.append(icon);
+    }
+    head.append(el("h3", "tile-name", title));
+    node.append(head);
   }
-  head.append(el("h2", "tile-name", title));
-  node.append(head, ...children);
+  node.append(...children);
   return node;
 }
+function heading(text) { return el("h2", "tiles-heading", text); }
 /// A sentence with its key words in ink and the rest in the one grey.
 function sentence(ink, grey) {
   const node = el("p", "sentence");
@@ -339,25 +344,27 @@ function render(notes) {
   if (typeof notes.summary === "string") head.append(el("p", "summary", notes.summary));
   nodes.push(head);
 
+  // A heading per section, as on the app's conversation page (13 October 2026): Insights, Notes,
+  // Larkin's take, To-do. Tiles under a heading that names them have no icon or name.
   const overview = texts(notes.overview);
-  if (overview.length) nodes.push(tile("conversation", "How the conversation went", list(overview, "bullets")));
+  if (overview.length) nodes.push(heading("How the conversation went"), tile(null, null, list(overview, "bullets")));
 
   // The sharer's own coaching is written to them ("you"), so its names say whose it is.
-  if (typeof notes.cameAcross === "string") {
-    nodes.push(tile("you", name ? `How ${name} came across` : "How they came across", sentence(notes.cameAcross)));
-  }
-
-  const areas = Array.isArray(notes.insights) ? notes.insights : [];
+  const areas = (Array.isArray(notes.insights) ? notes.insights : []).filter(area => typeof area?.title === "string");
   const tryNext = texts(notes.tryNext);
-  if (areas.length || tryNext.length) {
-    nodes.push(el("h2", "tiles-heading", name ? `Insights for ${name}` : "Their insights"));
-    // One lime tile per skill: each point in ink with why in grey, and next time as its item.
+  const cameAcross = typeof notes.cameAcross === "string" ? notes.cameAcross : null;
+  if (cameAcross || areas.length || tryNext.length) {
+    nodes.push(heading(name ? `Insights for ${name}` : "Their insights"));
+    if (cameAcross) nodes.push(tile("you", name ? `How ${name} came across` : "How they came across", sentence(cameAcross)));
+    // One lime tile per skill: whether it slipped or worked, then what happened in one ink sentence.
     for (const area of areas) {
-      if (typeof area?.title !== "string") continue;
       const parts = [];
-      for (const point of [...points(area.worked), ...points(area.slipped)]) {
-        parts.push(sentence(point.text, point.why));
-        if (point.next) parts.push(items([[point.next, "Next time"]]));
+      for (const [label, items] of [["What worked", points(area.worked)], ["What slipped", points(area.slipped)]]) {
+        for (const point of items) {
+          const block = el("div", "point");
+          block.append(el("p", "detail", label), sentence([point.text, point.why].filter(Boolean).join(" ")));
+          parts.push(block);
+        }
       }
       if (parts.length) nodes.push(tile("insight", area.title, ...parts));
     }
@@ -375,17 +382,17 @@ function render(notes) {
       if (label) body.append(el("h4", null, label));
       body.append(list(entries, "bullets"));
     }
-    nodes.push(tile("conversation", "Notes", body));
+    nodes.push(heading("Notes"), tile(null, null, body));
   }
 
-  // Larkin's take: its suggestions to the sharer, each with the problem it answers.
+  // Larkin's take: its suggestions to the sharer, as one list.
   const take = Array.isArray(notes.take)
-    ? notes.take.filter(item => item && typeof item.topic === "string" && typeof item.suggestion === "string")
+    ? notes.take.filter(item => item && typeof item.suggestion === "string")
     : [];
-  if (take.length) nodes.push(tile("insight", "Larkin’s take", items(take.map(item => [item.suggestion, item.topic]))));
+  if (take.length) nodes.push(heading("Larkin’s take"), tile(null, null, list(take.map(item => item.suggestion), "bullets")));
 
   const todos = texts(notes.todos);
-  if (todos.length) nodes.push(tile("todo", "To-do", items(todos.map(text => [text, null]))));
+  if (todos.length) nodes.push(heading("To-do"), tile(null, null, list(todos, "bullets")));
 
   // The hook: what Larkin would give the reader, about themselves, privately.
   const hook = el("aside", "hook");

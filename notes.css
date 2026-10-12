@@ -136,6 +136,8 @@ h1 { font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.01
 .items { display: grid; gap: 8px; }
 .item { background: var(--item); border-radius: 20px; padding: 14px 14px 14px 16px; display: grid; gap: 4px; }
 .item-text { font-size: 15px; line-height: 20px; overflow-wrap: anywhere; }
+/* A skill's point: whether it slipped or worked, above its sentence. */
+.point { display: grid; gap: 4px; }
 
 /* Meeting notes: subheadings in 15 semibold, points with grey bullets. */
 .notes { display: grid; gap: 14px; }
