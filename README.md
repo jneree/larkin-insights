@@ -21,9 +21,14 @@ The backend (table, functions, tests) lives in `larkin-ios/Backend/supabase`; th
 
 ## Design
 
-Larkin design system: DM Sans (self-hosted in `fonts/`), lime `#D2ED28` only as filled buttons on
-light and as text in the dark section, logo files from the design system in `images/`.
-Light and dark follow the reader's system setting.
+The app's 12 October 2026 guideline (Larkin Design System: "App screens" and the Tile component):
+the grey page (`#F0F0F0`, dark `#0B0B0B`), one white tile per section with its kind's glossy
+28px icon (`images/kind-*.svg`: amber conversation, lime insight, graphite about-you, violet focus,
+teal to-do) and its name, sentences at 15/20 and weight 450 with key words in ink and the rest in
+one grey, inner cards for items, no capital labels, colour bars or expand controls. Lime only as
+the hook's button on its white tile (never on the grey page) and as text in the dark section.
+A shared report keeps its own always-dark look (9 October). DM Sans is self-hosted in `fonts/`;
+logo files come from the design system in `images/`. Light and dark follow the reader's system.
 
 ## Deploy
 

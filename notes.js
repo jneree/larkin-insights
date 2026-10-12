@@ -5,7 +5,6 @@
 
 const API = "https://jvdtgnwexspohnsbxpbl.supabase.co/functions/v1/capture-v1-shared-notes";
 const CODE = /^[A-Za-z0-9_-]{22}$/;
-const SKILLS = new Set(["clarity", "listening", "framing", "assertiveness"]);
 const page = document.getElementById("page");
 
 function el(tag, className, text) {
@@ -29,9 +28,40 @@ function points(value) {
     .filter(item => item && typeof item.text === "string" && item.text.trim())
     .map(item => ({ text: item.text, why: typeof item.why === "string" ? item.why : null, next: typeof item.next === "string" ? item.next : null }));
 }
-function section(title, ...children) {
-  const node = el("section", "section");
-  node.append(el("h2", null, title), ...children);
+
+// The app's tile (12 October 2026 guideline): its kind's glossy icon and its name, then what it says.
+const KINDS = new Set(["conversation", "insight", "you", "focus", "todo"]);
+function tile(kind, title, ...children) {
+  const node = el("section", "tile");
+  const head = el("div", "tile-head");
+  if (KINDS.has(kind)) {
+    const icon = el("img");
+    icon.src = `/images/kind-${kind}.svg`;
+    icon.alt = "";
+    icon.width = 28;
+    icon.height = 28;
+    head.append(icon);
+  }
+  head.append(el("h2", "tile-name", title));
+  node.append(head, ...children);
+  return node;
+}
+/// A sentence with its key words in ink and the rest in the one grey.
+function sentence(ink, grey) {
+  const node = el("p", "sentence");
+  node.append(document.createTextNode(ink));
+  if (grey) node.append(document.createTextNode(" "), el("span", "soft", grey));
+  return node;
+}
+/// Inner cards: their words and an optional grey line.
+function items(entries) {
+  const node = el("div", "items");
+  for (const [text, detail] of entries) {
+    const item = el("div", "item");
+    item.append(el("p", "item-text", text));
+    if (detail) item.append(el("p", "detail", detail));
+    node.append(item);
+  }
   return node;
 }
 
@@ -298,120 +328,68 @@ function reveal(sections) {
 function render(notes) {
   if (notes.kind === "report") return renderReport(notes);
   const nodes = [];
+  const name = typeof notes.sharedBy === "string" ? notes.sharedBy : null;
+
+  // The header, as on the app's conversation page and its share sheet: when, and who shared it.
   const head = el("header", "head");
-  if (typeof notes.when === "string") head.append(el("p", "meta", notes.when));
+  const when = typeof notes.when === "string" ? notes.when.replaceAll(" · ", ", ") : null;
+  const by = name ? `shared by ${name}` : "shared from Larkin";
+  head.append(el("p", "meta", when ? `${when}, ${by}` : by.charAt(0).toUpperCase() + by.slice(1)));
   head.append(el("h1", null, notes.title));
-  head.append(el("p", "byline", typeof notes.sharedBy === "string" ? `Shared by ${notes.sharedBy}` : "Shared from Larkin"));
   if (typeof notes.summary === "string") head.append(el("p", "summary", notes.summary));
   nodes.push(head);
 
   const overview = texts(notes.overview);
-  if (overview.length) nodes.push(section("How the conversation went", list(overview, "points")));
+  if (overview.length) nodes.push(tile("conversation", "How the conversation went", list(overview, "bullets")));
 
-  // The sharer's own coaching is written to them ("you"), so its headings name them.
-  const name = typeof notes.sharedBy === "string" ? notes.sharedBy : null;
+  // The sharer's own coaching is written to them ("you"), so its names say whose it is.
   if (typeof notes.cameAcross === "string") {
-    nodes.push(section(name ? `How ${name} came across` : "How they came across", el("p", null, notes.cameAcross)));
+    nodes.push(tile("you", name ? `How ${name} came across` : "How they came across", sentence(notes.cameAcross)));
   }
 
   const areas = Array.isArray(notes.insights) ? notes.insights : [];
   const tryNext = texts(notes.tryNext);
   if (areas.length || tryNext.length) {
-    const cards = [];
+    nodes.push(el("h2", "tiles-heading", name ? `Insights for ${name}` : "Their insights"));
+    // One lime tile per skill: each point in ink with why in grey, and next time as its item.
     for (const area of areas) {
-      const card = el("article", "card");
-      const title = el("h3", "card-title", area.title);
-      if (SKILLS.has(area.area)) title.style.setProperty("--bar", `var(--skill-${area.area})`);
-      card.append(title);
-      let hasMore = false;
-      for (const [label, items] of [["What worked", points(area.worked)], ["What slipped", points(area.slipped)]]) {
-        if (!items.length) continue;
-        const ul = el("ul", "points");
-        for (const point of items) {
-          const li = el("li");
-          li.append(el("span", null, point.text));
-          if (point.why || point.next) {
-            hasMore = true;
-            const more = el("div", "more");
-            if (point.why) more.append(el("p", null, point.why));
-            if (point.next) {
-              const next = el("p", "next");
-              next.append(el("strong", null, "Next time: "), document.createTextNode(point.next));
-              more.append(next);
-            }
-            li.append(more);
-          }
-          ul.append(li);
-        }
-        const group = el("div", "group");
-        group.append(el("h4", "caps", label), ul);
-        card.append(group);
+      if (typeof area?.title !== "string") continue;
+      const parts = [];
+      for (const point of [...points(area.worked), ...points(area.slipped)]) {
+        parts.push(sentence(point.text, point.why));
+        if (point.next) parts.push(items([[point.next, "Next time"]]));
       }
-      // "See more" opens every point's why and next time in place, like Tell me more in the app.
-      if (hasMore) {
-        const toggle = el("button", "see-more", "See more");
-        toggle.type = "button";
-        toggle.setAttribute("aria-expanded", "false");
-        toggle.addEventListener("click", () => {
-          const open = card.classList.toggle("open");
-          toggle.textContent = open ? "See less" : "See more";
-          toggle.setAttribute("aria-expanded", String(open));
-        });
-        card.append(el("hr", "divider"), toggle);
-      }
-      cards.push(card);
+      if (parts.length) nodes.push(tile("insight", area.title, ...parts));
     }
-    if (tryNext.length) {
-      const card = el("article", "feature");
-      const ol = el("ol");
-      for (const item of tryNext) ol.append(el("li", null, item));
-      card.append(el("h3", "caps", "Try next"), ol);
-      cards.push(card);
-    }
-    nodes.push(section(name ? `Insights for ${name}` : "Their insights", ...cards));
+    if (tryNext.length) nodes.push(tile("focus", "Try next", items(tryNext.map(text => [text, null]))));
   }
 
+  // Notes as one tile written like meeting notes.
   const groups = notes.notes && typeof notes.notes === "object"
     ? [[null, texts(notes.notes.keyPoints)], ["Decisions", texts(notes.notes.decisions)], ["Open questions", texts(notes.notes.openQuestions)]]
-        .filter(([, items]) => items.length)
+        .filter(([, entries]) => entries.length)
     : [];
   if (groups.length) {
-    const card = el("div", "card");
-    groups.forEach(([label, items], index) => {
-      if (index > 0) card.append(el("hr", "divider"));
-      const group = el("div", "group");
-      if (label) group.append(el("h3", "caps", label));
-      group.append(list(items, "points"));
-      card.append(group);
-    });
-    nodes.push(section("Notes", card));
+    const body = el("div", "notes");
+    for (const [label, entries] of groups) {
+      if (label) body.append(el("h4", null, label));
+      body.append(list(entries, "bullets"));
+    }
+    nodes.push(tile("conversation", "Notes", body));
   }
 
-  // Larkin's take: its suggestions to the sharer on the main problems discussed.
+  // Larkin's take: its suggestions to the sharer, each with the problem it answers.
   const take = Array.isArray(notes.take)
     ? notes.take.filter(item => item && typeof item.topic === "string" && typeof item.suggestion === "string")
     : [];
-  if (take.length) {
-    const card = el("div", "card");
-    take.forEach((item, index) => {
-      if (index > 0) card.append(el("hr", "divider"));
-      const group = el("div", "take");
-      group.append(el("h3", "take-topic", item.topic), el("p", "take-text", item.suggestion));
-      card.append(group);
-    });
-    nodes.push(section("Larkin’s take", card));
-  }
+  if (take.length) nodes.push(tile("insight", "Larkin’s take", items(take.map(item => [item.suggestion, item.topic]))));
 
   const todos = texts(notes.todos);
-  if (todos.length) {
-    const card = el("div", "card");
-    card.append(list(todos, "points todos"));
-    nodes.push(section("To-dos", card));
-  }
+  if (todos.length) nodes.push(tile("todo", "To-do", items(todos.map(text => [text, null]))));
 
   // The hook: what Larkin would give the reader, about themselves, privately.
   const hook = el("aside", "hook");
-  const cta = el("a", "pill pill-ink", "Get Larkin");
+  const cta = el("a", "pill", "Get Larkin");
   cta.href = "https://getlarkin.com/?utm_source=shared-notes&utm_medium=link&utm_content=hook";
   hook.append(el("h2", null, "How did you come across?"),
     el("p", null, "Larkin writes notes like these from every conversation, and gives you a private read on how you came across: what worked, what slipped and what to try next."),
