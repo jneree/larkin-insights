@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Connect ChatGPT · Larkin</title>
+<meta name="description" content="Let ChatGPT read your Larkin conversations.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src https://jvdtgnwexspohnsbxpbl.supabase.co; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#F0F0F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0B0B0B" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+<link rel="preload" as="font" type="font/woff2" href="/fonts/dm-sans-latin.woff2" crossorigin>
+<link rel="stylesheet" href="/notes.css">
+<link rel="stylesheet" href="/connect/connect.css?v=1">
+<script src="/connect/connect.js?v=1" defer></script>
+</head>
+<body>
+<header class="bar">
+  <div class="column bar-inner">
+    <span class="logo">
+      <img class="logo-light" src="/images/wordmark-black.svg" alt="larkin." width="74" height="22">
+      <img class="logo-dark" src="/images/wordmark-white.svg" alt="" width="74" height="22">
+    </span>
+  </div>
+</header>
+<main class="column">
+  <div class="head">
+    <h1>Connect ChatGPT to&nbsp;Larkin.</h1>
+  </div>
+  <p class="status" id="status" role="status">Checking the link…</p>
+  <form class="tile" id="approve" hidden>
+    <p class="sentence" id="who">ChatGPT wants to read your Larkin conversations.</p>
+    <p class="sentence">It will read your conversations, their notes, your Mirror and your transcripts. It can’t change or delete anything.</p>
+    <label class="field">
+      <span class="detail">Your connection passphrase</span>
+      <input id="passphrase" type="password" autocomplete="current-password" autocapitalize="off" spellcheck="false" required>
+    </label>
+    <p class="detail error" id="error" role="alert" hidden></p>
+    <div class="actions">
+      <button class="pill" type="submit" id="connect">Connect</button>
+      <button class="pill pill-quiet" type="button" id="cancel">Cancel</button>
+    </div>
+  </form>
+</main>
+</body>
+</html>
