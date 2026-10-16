@@ -15,8 +15,9 @@
 <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
 <link rel="preload" as="font" type="font/woff2" href="/fonts/dm-sans-latin.woff2" crossorigin>
 <link rel="stylesheet" href="/notes.css">
-<link rel="stylesheet" href="/connect/connect.css?v=1">
-<script src="/connect/connect.js?v=1" defer></script>
+<link rel="stylesheet" href="/connect/connect.css?v=2">
+<script src="/connect/qrcode.js?v=1" defer></script>
+<script src="/connect/connect.js?v=2" defer></script>
 </head>
 <body>
 <header class="bar">
@@ -32,19 +33,21 @@
     <h1>Connect ChatGPT to&nbsp;Larkin.</h1>
   </div>
   <p class="status" id="status" role="status">Checking the link…</p>
-  <form class="tile" id="approve" hidden>
+  <section class="tile" id="ask" hidden>
     <p class="sentence" id="who">ChatGPT wants to read your Larkin conversations.</p>
     <p class="sentence">It will read your conversations, their notes, your Mirror and your transcripts. It can’t change or delete anything.</p>
-    <label class="field">
-      <span class="detail">Your connection passphrase</span>
-      <input id="passphrase" type="password" autocomplete="current-password" autocapitalize="off" spellcheck="false" required>
-    </label>
-    <p class="detail error" id="error" role="alert" hidden></p>
-    <div class="actions">
-      <button class="pill" type="submit" id="connect">Connect</button>
+    <div class="scan" id="scan" hidden>
+      <div class="qr" id="qr" aria-label="QR code that opens this request in Larkin on your iPhone" role="img"></div>
+      <p class="sentence">Scan it with your iPhone’s camera, then tap Connect in&nbsp;Larkin.</p>
+    </div>
+    <div class="actions" id="phone" hidden>
+      <a class="pill" id="open">Approve in Larkin</a>
+    </div>
+    <p class="detail" id="waiting" role="status">Waiting for you in Larkin…</p>
+    <div class="actions" id="cancelRow">
       <button class="pill pill-quiet" type="button" id="cancel">Cancel</button>
     </div>
-  </form>
+  </section>
 </main>
 </body>
 </html>

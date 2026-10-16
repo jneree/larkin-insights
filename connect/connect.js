@@ -1,85 +1,91 @@
 // Connect ChatGPT (16 October 2026): ChatGPT sends the person here with a request id in the
-// fragment. The page shows which app asks, takes the person's connection passphrase, and sends
-// them back to the app with a one-time code (or a refusal). The passphrase only goes to Larkin.
+// fragment. The person approves in the Larkin app, signed in: on an iPhone the button opens Larkin,
+// on a computer a QR code carries the request to the iPhone. This page waits, then returns to
+// ChatGPT with a one-time code (or a refusal). A page opened from the QR code only hands over to
+// Larkin: the page that ChatGPT opened is the one that returns to it.
 (() => {
   const endpoint = "https://jvdtgnwexspohnsbxpbl.supabase.co/functions/v1/larkin-mcp/approval";
-  const request = new URLSearchParams(location.hash.slice(1)).get("request");
-  const status = document.getElementById("status");
-  const form = document.getElementById("approve");
-  const who = document.getElementById("who");
-  const field = document.getElementById("passphrase");
-  const error = document.getElementById("error");
-  const connect = document.getElementById("connect");
-  const cancel = document.getElementById("cancel");
+  const params = new URLSearchParams(location.hash.slice(1));
+  const request = params.get("request");
+  const fromQR = params.get("via") === "qr";
+  const onIPhone = /iPhone|iPod/.test(navigator.userAgent);
+  const $ = (id) => document.getElementById(id);
+  let polling = null;
 
   function stop(message) {
-    form.hidden = true;
-    status.hidden = false;
-    status.textContent = message;
-  }
-
-  async function send(body) {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ request, ...body }),
-    });
-    return { ok: response.ok, body: await response.json().catch(() => ({})) };
+    clearInterval(polling);
+    $("ask").hidden = true;
+    $("status").hidden = false;
+    $("status").textContent = message;
   }
 
   function leave(redirect, message) {
     stop(message);
-    // Only back to the app the server checked at registration.
+    // Only back to an app the server checked at registration.
     if (typeof redirect === "string" && /^(https:\/\/(chatgpt\.com|chat\.openai\.com)\/|http:\/\/(localhost|127\.0\.0\.1)[:/])/.test(redirect)) {
       location.replace(redirect);
     }
   }
 
-  async function load() {
-    if (!request) return stop("This link is incomplete. Start again from ChatGPT.");
-    try {
-      const response = await fetch(`${endpoint}?request=${encodeURIComponent(request)}`);
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) return stop(body.error_description || "This link has expired. Start again from ChatGPT.");
-      const name = body.client && body.client.name ? body.client.name : "An app";
-      who.textContent = `${name} wants to read your Larkin conversations. You’ll go back to ${body.client.returnsTo} after.`;
-      status.hidden = true;
-      form.hidden = false;
-      field.focus();
-    } catch {
-      stop("Larkin can’t be reached. Check your connection and reload the page.");
-    }
+  async function pickUp(extra = {}) {
+    const response = await fetch(`${endpoint}/pickup`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ request, ...extra }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) return stop(body.error_description || "This link has expired. Start again from ChatGPT.");
+    if (body.status === "approved") return leave(body.redirect, "Connected. Going back to ChatGPT…");
+    if (body.status === "denied") return leave(body.redirect, "Not connected. You can close this page.");
   }
 
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    error.hidden = true;
-    connect.disabled = cancel.disabled = true;
-    try {
-      const { ok, body } = await send({ decision: "approve", passphrase: field.value });
-      if (ok && body.redirect) return leave(body.redirect, "Connected. Going back to ChatGPT…");
-      if (body.error === "wrong_passphrase" && body.attempts_left > 0) {
-        error.textContent = `${body.error_description} ${body.attempts_left} ${body.attempts_left === 1 ? "try" : "tries"} left.`;
-        error.hidden = false;
-        field.select();
-      } else {
-        stop(body.error_description || "This link has expired. Start again from ChatGPT.");
-      }
-    } catch {
-      error.textContent = "Larkin can’t be reached. Check your connection and try again.";
-      error.hidden = false;
-    }
-    connect.disabled = cancel.disabled = false;
-  });
+  function poll() {
+    pickUp().catch(() => {});
+  }
 
-  cancel.addEventListener("click", async () => {
-    connect.disabled = cancel.disabled = true;
+  function showQR(link) {
+    const qr = qrcode(0, "M");
+    qr.addData(link);
+    qr.make();
+    $("qr").innerHTML = qr.createSvgTag({ cellSize: 4, margin: 12, scalable: true });
+    $("scan").hidden = false;
+  }
+
+  async function load() {
+    if (!request) return stop("This link is incomplete. Start again from ChatGPT.");
+    let body;
     try {
-      const { body } = await send({ decision: "deny" });
-      leave(body.redirect, "Not connected. You can close this page.");
+      const response = await fetch(`${endpoint}?request=${encodeURIComponent(request)}`);
+      body = await response.json().catch(() => ({}));
+      if (!response.ok) return stop(body.error_description || "This link has expired. Start again from ChatGPT.");
     } catch {
-      stop("Not connected. You can close this page.");
+      return stop("Larkin can’t be reached. Check your connection and reload the page.");
     }
+    const name = body.client && body.client.name ? body.client.name : "An app";
+    $("who").textContent = `${name} wants to read your Larkin conversations.`;
+    $("open").href = body.appLink;
+    if (onIPhone) {
+      $("phone").hidden = false;
+    } else {
+      showQR(`https://insights.getlarkin.com/connect/#request=${encodeURIComponent(request)}&via=qr`);
+    }
+    if (fromQR) {
+      // The computer's page returns to ChatGPT; this one only opens Larkin.
+      $("waiting").textContent = "After you tap Connect, go back to your computer. ChatGPT continues there.";
+      $("cancelRow").hidden = true;
+    } else {
+      polling = setInterval(poll, 2000);
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
+      setTimeout(() => stop("This link has expired. Start again from ChatGPT."), 15 * 60 * 1000);
+    }
+    $("status").hidden = true;
+    $("ask").hidden = false;
+    if (body.status !== "pending" && !fromQR) poll();
+  }
+
+  $("cancel").addEventListener("click", () => {
+    $("cancel").disabled = true;
+    pickUp({ cancel: true }).catch(() => stop("Not connected. You can close this page."));
   });
 
   load();
