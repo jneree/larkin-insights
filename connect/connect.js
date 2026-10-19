@@ -11,6 +11,7 @@
   const onIPhone = /iPhone|iPod/.test(navigator.userAgent);
   const $ = (id) => document.getElementById(id);
   let polling = null;
+  let appName = "the app";
 
   function stop(message) {
     clearInterval(polling);
@@ -22,7 +23,12 @@
   function leave(redirect, message) {
     stop(message);
     // Only back to an app the server checked at registration.
-    if (typeof redirect === "string" && /^(https:\/\/(chatgpt\.com|chat\.openai\.com)\/|http:\/\/(localhost|127\.0\.0\.1)[:/])/.test(redirect)) {
+    let mori = false;
+    try {
+      const url = new URL(redirect);
+      mori = url.origin === "https://mori-time-map.jul-neree.chatgpt.site" && url.pathname === "/api/larkin/callback" && !url.hash && !url.username && !url.password;
+    } catch { /* Invalid return addresses are never followed. */ }
+    if (typeof redirect === "string" && (mori || /^(https:\/\/(chatgpt\.com|chat\.openai\.com)\/|http:\/\/(localhost|127\.0\.0\.1)[:/])/.test(redirect))) {
       location.replace(redirect);
     }
   }
@@ -34,8 +40,8 @@
       body: JSON.stringify({ request, ...extra }),
     });
     const body = await response.json().catch(() => ({}));
-    if (!response.ok) return stop(body.error_description || "This link has expired. Start again from ChatGPT.");
-    if (body.status === "approved") return leave(body.redirect, "Connected. Going back to ChatGPT…");
+    if (!response.ok) return stop(body.error_description || "This link has expired. Start again from the app you are connecting.");
+    if (body.status === "approved") return leave(body.redirect, `Connected. Going back to ${appName}…`);
     if (body.status === "denied") return leave(body.redirect, "Not connected. You can close this page.");
   }
 
@@ -52,16 +58,19 @@
   }
 
   async function load() {
-    if (!request) return stop("This link is incomplete. Start again from ChatGPT.");
+    if (!request) return stop("This link is incomplete. Start again from the app you are connecting.");
     let body;
     try {
       const response = await fetch(`${endpoint}?request=${encodeURIComponent(request)}`);
       body = await response.json().catch(() => ({}));
-      if (!response.ok) return stop(body.error_description || "This link has expired. Start again from ChatGPT.");
+      if (!response.ok) return stop(body.error_description || "This link has expired. Start again from the app you are connecting.");
     } catch {
       return stop("Larkin can’t be reached. Check your connection and reload the page.");
     }
     const name = body.client && body.client.name ? body.client.name : "An app";
+    appName = name;
+    document.title = `Connect ${name} · Larkin`;
+    document.querySelector("h1").textContent = `Connect ${name} to Larkin.`;
     $("who").textContent = `${name} wants to read your Larkin conversations.`;
     $("open").href = body.appLink;
     if (onIPhone) {
@@ -71,12 +80,12 @@
     }
     if (fromQR) {
       // The computer's page returns to ChatGPT; this one only opens Larkin.
-      $("waiting").textContent = "After you tap Connect, go back to your computer. ChatGPT continues there.";
+      $("waiting").textContent = `After you tap Connect, go back to your computer. ${appName} continues there.`;
       $("cancelRow").hidden = true;
     } else {
       polling = setInterval(poll, 2000);
       document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
-      setTimeout(() => stop("This link has expired. Start again from ChatGPT."), 15 * 60 * 1000);
+      setTimeout(() => stop("This link has expired. Start again from the app you are connecting."), 15 * 60 * 1000);
     }
     $("status").hidden = true;
     $("ask").hidden = false;
