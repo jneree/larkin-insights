@@ -28,7 +28,8 @@
       const url = new URL(redirect);
       mori = url.origin === "https://mori-time-map.jul-neree.chatgpt.site" && url.pathname === "/api/larkin/callback" && !url.hash && !url.username && !url.password;
     } catch { /* Invalid return addresses are never followed. */ }
-    if (typeof redirect === "string" && (mori || /^(https:\/\/(chatgpt\.com|chat\.openai\.com)\/|http:\/\/(localhost|127\.0\.0\.1)[:/])/.test(redirect))) {
+    const claude = /^https:\/\/(claude\.ai|claude\.com)\/api\/mcp\/auth_callback(\?|$)/.test(redirect);
+    if (typeof redirect === "string" && (mori || claude || /^(https:\/\/(chatgpt\.com|chat\.openai\.com)\/|http:\/\/(localhost|127\.0\.0\.1)[:/])/.test(redirect))) {
       location.replace(redirect);
     }
   }
