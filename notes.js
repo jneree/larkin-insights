@@ -385,6 +385,23 @@ function render(notes) {
     nodes.push(heading("Notes"), tile(null, null, body));
   }
 
+  // Notes written with a template (22 October 2026): its name, then a tile per section with its
+  // title inside, as on the app's conversation page.
+  const templated = (Array.isArray(notes.sections) ? notes.sections : [])
+    .filter(section => section && typeof section.title === "string")
+    .map(section => ({ title: section.title, text: str(section.text), points: texts(section.points) }))
+    .filter(section => section.text || section.points.length);
+  if (templated.length) {
+    const template = str(notes.template);
+    nodes.push(heading(template ? `${template} notes` : "Notes"));
+    for (const section of templated) {
+      const parts = [];
+      if (section.text) parts.push(sentence(section.text));
+      if (section.points.length) parts.push(list(section.points, "bullets"));
+      nodes.push(tile(null, section.title, ...parts));
+    }
+  }
+
   // Larkin's take: its suggestions to the sharer, as one list.
   const take = Array.isArray(notes.take)
     ? notes.take.filter(item => item && typeof item.suggestion === "string")
