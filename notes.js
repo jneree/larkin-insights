@@ -405,7 +405,8 @@ function render(notes) {
     .filter(section => section.text || section.points.length);
   if (templated.length) {
     const template = str(notes.template);
-    nodes.push(heading(template ? `${template} notes` : "Notes"));
+    // "1:1 notes"; names that already say notes ("Detailed notes") as they are.
+    nodes.push(heading(!template ? "Notes" : /notes$/i.test(template) ? template : `${template} notes`));
     for (const section of templated) {
       const parts = [];
       if (section.text) parts.push(sentence(section.text));
