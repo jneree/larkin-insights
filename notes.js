@@ -18,6 +18,17 @@ function list(items, className) {
   for (const item of items) ul.append(el("li", null, item));
   return ul;
 }
+// Points with their sub-points under them (Detailed notes, 26 October 2026).
+function nested(items, details, className) {
+  const ul = el("ul", className);
+  items.forEach((item, index) => {
+    const li = el("li", null, item);
+    const sub = texts(Array.isArray(details) ? details[index] : null);
+    if (sub.length) li.append(list(sub, "bullets sub"));
+    ul.append(li);
+  });
+  return ul;
+}
 function texts(value) {
   return Array.isArray(value) ? value.filter(item => typeof item === "string" && item.trim()) : [];
 }
@@ -389,7 +400,8 @@ function render(notes) {
   // title inside, as on the app's conversation page.
   const templated = (Array.isArray(notes.sections) ? notes.sections : [])
     .filter(section => section && typeof section.title === "string")
-    .map(section => ({ title: section.title, text: str(section.text), points: texts(section.points) }))
+    .map(section => ({ title: section.title, text: str(section.text), points: texts(section.points),
+      details: Array.isArray(section.details) ? section.details : [] }))
     .filter(section => section.text || section.points.length);
   if (templated.length) {
     const template = str(notes.template);
@@ -397,7 +409,7 @@ function render(notes) {
     for (const section of templated) {
       const parts = [];
       if (section.text) parts.push(sentence(section.text));
-      if (section.points.length) parts.push(list(section.points, "bullets"));
+      if (section.points.length) parts.push(nested(section.points, section.details, "bullets"));
       nodes.push(tile(null, section.title, ...parts));
     }
   }
