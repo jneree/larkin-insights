@@ -215,6 +215,39 @@ function sideBySideTiles(raw, name) {
     tiles.push(tagged(tag("Cared most about"), cols));
   }
 
+  // How you talked, both on the four scales (29 October 2026): the sharer in ink, the reader in grey.
+  const ENDS = { assertiveness: ["Softened", "Direct", "said things directly", "softened them"],
+    listening: ["About plans", "About people", "asked about people", "asked about plans"],
+    clarity: ["Thinks out loud", "Gets to the point", "got to the point", "thought out loud"],
+    framing: ["Facts first", "Story first", "led with stories", "led with facts"] };
+  const scales = (Array.isArray(raw.scales) ? raw.scales : []).filter(x => ENDS[x?.area]).slice(0, 4)
+    .map(x => ({ area: x.area, me: Math.min(100, num(x.you)), you: Math.min(100, num(x.them)) }));
+  if (scales.length) {
+    const widest = scales.reduce((a, b) => Math.abs(b.me - b.you) > Math.abs(a.me - a.you) ? b : a);
+    const [, , right, left] = ENDS[widest.area];
+    const talkedLead = Math.abs(widest.me - widest.you) < 15 ? "You talked in much the same way."
+      : widest.me > widest.you ? `${who} ${right}; you ${left}.` : `${who} ${left}; you ${right}.`;
+    const list = el("div", "scales");
+    for (const scale of scales) {
+      const row = el("div", "scale");
+      const ends = el("div", "ends");
+      ends.append(el("span", "end", ENDS[scale.area][0]), el("span", "end", ENDS[scale.area][1]));
+      const track = el("div", "side-track");
+      track.append(el("span", "side-rail"));
+      for (const [tone, value] of [["you", scale.you], ["me", scale.me]]) {
+        const dot = el("span", `side-dot ${tone}`);
+        dot.style.setProperty("--p", String(value / 100));
+        track.append(dot);
+      }
+      row.setAttribute("role", "img");
+      row.setAttribute("aria-label", `${ENDS[scale.area][0]} to ${ENDS[scale.area][1]}: ${who} ${Math.round(scale.me)}, you ${Math.round(scale.you)}, out of 100`);
+      ends.setAttribute("aria-hidden", "true"); track.setAttribute("aria-hidden", "true");
+      row.append(ends, track);
+      list.append(row);
+    }
+    tiles.push(tagged(tag("How you talked"), lead(talkedLead), list, keyRow(who, "You")));
+  }
+
   const share = talk.me / (talk.me + talk.you);
   const talkLead = Math.abs(share - 0.5) < 0.05 ? "You both talked about as much."
     : `${share > 0.5 ? who : "You"} talked ${Math.abs(share - 0.5) <= 0.15 ? "a little more" : "more"}.`;

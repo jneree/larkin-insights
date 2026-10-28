@@ -396,5 +396,5 @@ body.motion .report-line .word.on { opacity: 1; }
 .side-track { position: relative; height: 16px; }
 .side-rail { position: absolute; left: 0; right: 0; top: 7px; height: 2px; border-radius: 1px; background: var(--rail); }
 .side-dot { position: absolute; top: 0; width: 16px; height: 16px; border-radius: 50%; left: calc(var(--p) * (100% - 16px)); }
-.side-dot.you { box-shadow: 0 0 0 2px var(--tile); }
+.side-dot.you, .side-dot.me { box-shadow: 0 0 0 2px var(--tile); }
 .side-ends { display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); margin-top: -10px; }
