@@ -150,7 +150,8 @@ h1 { font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.01
 }
 .tag.worked { background: var(--tag-worked); color: var(--tag-worked-ink); }
 .tag.to-work-on { background: var(--tag-red); color: var(--tag-red-ink); }
-.tag.next { background: var(--lime); color: var(--on-lime); }
+.tag.next { background: rgba(210, 237, 40, 0.6); color: var(--ink); }
+@media (prefers-color-scheme: dark) { .tag.next { background: rgba(210, 237, 40, 0.18); color: var(--lime); } }
 .trend { flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .verdict, .sentence { font-size: 16px; line-height: 21px; font-weight: 480; overflow-wrap: anywhere; }
 .verdict strong, .verdict.lead { font-weight: 500; color: var(--ink); }
