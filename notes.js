@@ -184,24 +184,35 @@ function sideBySideTiles(raw, name) {
   const keyRow = (a, b) => { const k = el("div", "side-key"); k.append(swatchOf(a, "me"), swatchOf(b, "you")); return k; };
   const lead = (first, rest) => verdict(first, rest);
   const tiles = [];
+  const table = (heading, rows) => {
+    const t = el("div", "side-table");
+    const head = el("div", "side-row side-head");
+    head.append(el("span", "side-cell-label", heading ?? ""), swatchOf(who, "me"), swatchOf("You", "you"));
+    t.append(head);
+    for (const [label, x, y] of rows) {
+      const row = el("div", "side-row");
+      row.append(el("span", "side-cell-label", label), el("span", x > y ? "side-cell strong" : "side-cell", String(Math.round(x))),
+        el("span", y > x ? "side-cell strong" : "side-cell", String(Math.round(y))));
+      t.append(row);
+    }
+    return t;
+  };
 
+  // How you came across as a paragraph only, then what each cared about as its own tile
+  // (Julien, 29 October 2026).
   const reading = str(raw.readingShared), me = raw.you ?? {}, you = raw.them ?? {};
-  if (reading && str(me.cameAcross) && str(you.cameAcross)) {
-    const text = cap(reading.replaceAll("{name}", name ?? "they"));
-    const [first, rest] = leadOf(text);
-    const section = (title, a, b) => {
-      const node = el("div", "side-section");
-      const cols = el("div", "side-cols");
-      for (const [label, tone, value] of [[who, "me", a], ["You", "you", b]]) {
-        const col = el("div", "side-col");
-        col.append(swatchOf(label, tone), el("p", "side-phrase", hold(`${value}.`)));
-        cols.append(col);
-      }
-      node.append(el("p", "side-label", title), cols);
-      return node;
-    };
-    tiles.push(tagged(tag("How you came across"), lead(first, rest), section("Came across", me.cameAcross, you.cameAcross),
-      section("Cared most about", me.caredAbout ?? "", you.caredAbout ?? "")));
+  if (reading) {
+    const [first, rest] = leadOf(cap(reading.replaceAll("{name}", name ?? "they")));
+    tiles.push(tagged(tag("How you came across"), lead(first, rest)));
+  }
+  if (str(me.caredAbout) && str(you.caredAbout)) {
+    const cols = el("div", "side-cols");
+    for (const [label, tone, value] of [[who, "me", me.caredAbout], ["You", "you", you.caredAbout]]) {
+      const col = el("div", "side-col");
+      col.append(swatchOf(label, tone), el("p", "side-phrase", hold(`${value}.`)));
+      cols.append(col);
+    }
+    tiles.push(tagged(tag("Cared most about"), cols));
   }
 
   const share = talk.me / (talk.me + talk.you);
@@ -227,6 +238,16 @@ function sideBySideTiles(raw, name) {
   }
   tiles.push(tagged(tag("Longest turn"), lead(`${longest.me >= longest.you ? who : "You"} held the floor longest.`), bars));
 
+  if (fillers.length) {
+    const mine = fillers.filter(f => f.me >= 3 && f.me > f.you).sort((x, y) => y.me - x.me)[0];
+    const yours = fillers.filter(f => f.you >= 3 && f.you > f.me).sort((x, y) => y.you - x.you)[0];
+    const owner = name ? `${name}’s` : "Theirs";
+    const fillerLead = mine && yours ? `${owner} is “${mine.word}”; yours is “${yours.word}”.` : mine ? `${owner} is “${mine.word}”.` : yours ? `Yours is “${yours.word}”.` : null;
+    const parts = [table("Times said", fillers.map(f => [`“${f.word}”`, f.me, f.you]))];
+    if (fillerLead) parts.unshift(lead(fillerLead));
+    tiles.push(tagged(tag("Filler words"), ...parts));
+  }
+
   const high = Math.max(pace.me, pace.you), low = Math.min(pace.me, pace.you);
   const paceLead = !high || (high - low) / high <= 0.08 ? "You matched each other’s pace." : `${pace.me > pace.you ? who : "You"} spoke faster.`;
   const nums = el("div", "side-nums");
@@ -237,19 +258,6 @@ function sideBySideTiles(raw, name) {
   }
   tiles.push(tagged(tag("Pace"), lead(paceLead), nums, el("p", "side-unit", "Words a minute")));
 
-  const table = (heading, rows) => {
-    const t = el("div", "side-table");
-    const head = el("div", "side-row side-head");
-    head.append(el("span", "side-cell-label", heading ?? ""), swatchOf(who, "me"), swatchOf("You", "you"));
-    t.append(head);
-    for (const [label, x, y] of rows) {
-      const row = el("div", "side-row");
-      row.append(el("span", "side-cell-label", label), el("span", x > y ? "side-cell strong" : "side-cell", String(Math.round(x))),
-        el("span", y > x ? "side-cell strong" : "side-cell", String(Math.round(y))));
-      t.append(row);
-    }
-    return t;
-  };
   const soft = softening.me + softening.you < 3 ? null : softening.me > softening.you * 1.15 ? `${name ?? "they"} softened a little more`
     : softening.you > softening.me * 1.15 ? "you softened a little more" : "you both softened about as much";
   const wordsLead = shared && soft ? `You both said “${shared.word}”, and ${soft}.` : shared ? `You both said “${shared.word}”.` : soft ? `${cap(soft)}.` : null;
@@ -258,16 +266,6 @@ function sideBySideTiles(raw, name) {
     if (shared) rows.push([`“${shared.word}”`, shared.me, shared.you]);
     if (soft) rows.push(["“maybe”, “I\u00a0think”", softening.me, softening.you]);
     tiles.push(tagged(tag("Same words"), lead(wordsLead), table(null, rows)));
-  }
-
-  if (fillers.length) {
-    const mine = fillers.filter(f => f.me >= 3 && f.me > f.you).sort((x, y) => y.me - x.me)[0];
-    const yours = fillers.filter(f => f.you >= 3 && f.you > f.me).sort((x, y) => y.you - x.you)[0];
-    const owner = name ? `${name}’s` : "Theirs";
-    const fillerLead = mine && yours ? `${owner} is “${mine.word}”; yours is “${yours.word}”.` : mine ? `${owner} is “${mine.word}”.` : yours ? `Yours is “${yours.word}”.` : null;
-    const parts = [table("Times said", fillers.map(f => [`“${f.word}”`, f.me, f.you]))];
-    if (fillerLead) parts.unshift(lead(fillerLead));
-    tiles.push(tagged(tag("Filler words"), ...parts));
   }
 
   const fast = replies.me < 0.5 && replies.you < 0.5;
