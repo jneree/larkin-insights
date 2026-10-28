@@ -164,7 +164,9 @@ h1 { font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.01
 .bullets.sub li { color: var(--ink-muted); }
 
 /* Insights and the notes: two pills, the one that's on filled with ink. */
-.pills { display: flex; flex-wrap: wrap; gap: 10px; padding: 6px 0 0; }
+.pills { display: flex; gap: 10px; padding: 6px 16px 0 0; margin-right: -16px; overflow-x: auto; scrollbar-width: none; }
+.pills::-webkit-scrollbar { display: none; }
+.tab { flex: none; }
 .tab {
   display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 16px; border: 0; border-radius: 999px;
   background: var(--tile); color: var(--ink); cursor: pointer;
@@ -357,3 +359,42 @@ body.motion .report-hero.shown .report-dot { animation: report-pulse 0.7s ease-i
 body.motion .report-line .word { opacity: 0; transition: opacity 0.2s ease-out; }
 body.motion .report-line .word.on { opacity: 1; }
 @keyframes report-pulse { 50% { transform: scale(1.7); } }
+
+/* Side by side (28 October 2026): the sharer in ink, the reader in grey; one comparison per tile. */
+:root { --them: #A3A39D; --hairline: rgba(21, 21, 21, 0.08); }
+@media (prefers-color-scheme: dark) { :root { --them: #6B6B66; --hairline: rgba(255, 255, 255, 0.12); } }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.sw.me, .seg.me, .side-bar.me, .side-dot.me { background: var(--ink); }
+.sw.you, .seg.you, .side-bar.you, .side-dot.you { background: var(--them); }
+.side-key { display: flex; justify-content: space-between; gap: 8px; margin-top: -8px; }
+.side-key .key-item, .side-table .key-item, .side-col .key-item, .side-numcol .key-item {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); }
+.split { display: flex; gap: 4px; height: 12px; }
+.seg { height: 12px; border-radius: 6px; min-width: 6px; }
+.side-section { display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid var(--hairline); }
+.side-label { font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); }
+.side-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.side-col { display: grid; gap: 6px; align-content: start; }
+.side-phrase { font-size: 16px; line-height: 21px; font-weight: 500; overflow-wrap: anywhere; }
+.side-bars { display: grid; gap: 10px; }
+.side-bar-row { display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 10px; }
+.side-who { font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-bar-track { height: 12px; }
+.side-bar { display: block; height: 12px; border-radius: 6px; }
+.side-num { font-size: 13px; line-height: 18px; font-weight: 500; }
+.side-nums { display: flex; gap: 40px; }
+.side-numcol { display: grid; gap: 4px; }
+.side-numcol b { font-size: 34px; line-height: 38px; font-weight: 600; letter-spacing: -0.02em; }
+.side-unit { font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); margin-top: -8px; }
+.side-table { display: grid; }
+.side-row { display: grid; grid-template-columns: 1fr 76px 76px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--hairline);
+  font-size: 16px; line-height: 21px; font-weight: 480; }
+.side-row.side-head { border-top: 0; padding-top: 0; font-size: 13px; line-height: 18px; color: var(--ink-muted); }
+.side-cell-label { overflow-wrap: anywhere; padding-right: 8px; }
+.side-cell { color: var(--ink-muted); }
+.side-cell.strong { color: var(--ink); font-weight: 500; }
+.side-track { position: relative; height: 16px; }
+.side-rail { position: absolute; left: 0; right: 0; top: 7px; height: 2px; border-radius: 1px; background: var(--rail); }
+.side-dot { position: absolute; top: 0; width: 16px; height: 16px; border-radius: 50%; left: calc(var(--p) * (100% - 16px)); }
+.side-dot.you { box-shadow: 0 0 0 2px var(--tile); }
+.side-ends { display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); margin-top: -10px; }

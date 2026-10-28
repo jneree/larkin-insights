@@ -50,11 +50,16 @@ function tagged(label, ...children) {
   node.append(label, ...children);
   return node;
 }
+/// The last two words held together: never one word alone on a last line.
+function hold(text) {
+  const at = text.lastIndexOf(" ");
+  return at > 0 ? `${text.slice(0, at)}\u00a0${text.slice(at + 1)}` : text;
+}
 /// A verdict at 16/500 in ink, then what happened in the one grey.
 function verdict(lead, rest) {
   const node = el("p", "verdict");
-  node.append(el("strong", null, lead));
-  if (rest) node.append(document.createTextNode(" "), el("span", "soft", rest));
+  node.append(el("strong", null, rest ? lead : hold(lead)));
+  if (rest) node.append(document.createTextNode(" "), el("span", "soft", hold(rest)));
   return node;
 }
 /// "Curious and open." and the rest of the paragraph.
@@ -160,6 +165,125 @@ function talkedTile(talked, name) {
   if (usualSeen) key.append(mark("ring", name ? `${name}’s usual` : "Their usual"));
   node.append(key);
   return node;
+}
+
+// Side by side (28 October 2026), read by the other person: the sharer by name (in ink) and "you"
+// (in grey), the same tiles and sentence rules as the app's.
+function sideBySideTiles(raw, name) {
+  if (!raw || typeof raw !== "object") return [];
+  const num = v => typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0;
+  const pair = o => ({ me: num(o?.you), you: num(o?.them) });
+  const talk = pair(raw.talk), longest = pair(raw.longest), pace = pair(raw.pace), softening = pair(raw.softening);
+  const replies = { ...pair(raw.replies), quick: num(raw.replies?.quick) };
+  const shared = raw.shared && str(raw.shared.word) ? { word: raw.shared.word, ...pair(raw.shared) } : null;
+  const fillers = (Array.isArray(raw.fillers) ? raw.fillers : []).filter(f => str(f?.word)).slice(0, 5).map(f => ({ word: f.word, ...pair(f) }));
+  if (talk.me + talk.you <= 0) return [];
+  const who = name ?? "They";
+  const cap = text => text.charAt(0).toUpperCase() + text.slice(1);
+  const swatchOf = (label, tone) => { const s = el("span", "key-item"); s.append(el("span", `sw ${tone}`), el("span", null, label)); return s; };
+  const keyRow = (a, b) => { const k = el("div", "side-key"); k.append(swatchOf(a, "me"), swatchOf(b, "you")); return k; };
+  const lead = (first, rest) => verdict(first, rest);
+  const tiles = [];
+
+  const reading = str(raw.readingShared), me = raw.you ?? {}, you = raw.them ?? {};
+  if (reading && str(me.cameAcross) && str(you.cameAcross)) {
+    const text = cap(reading.replaceAll("{name}", name ?? "they"));
+    const [first, rest] = leadOf(text);
+    const section = (title, a, b) => {
+      const node = el("div", "side-section");
+      const cols = el("div", "side-cols");
+      for (const [label, tone, value] of [[who, "me", a], ["You", "you", b]]) {
+        const col = el("div", "side-col");
+        col.append(swatchOf(label, tone), el("p", "side-phrase", hold(`${value}.`)));
+        cols.append(col);
+      }
+      node.append(el("p", "side-label", title), cols);
+      return node;
+    };
+    tiles.push(tagged(tag("How you came across"), lead(first, rest), section("Came across", me.cameAcross, you.cameAcross),
+      section("Cared most about", me.caredAbout ?? "", you.caredAbout ?? "")));
+  }
+
+  const share = talk.me / (talk.me + talk.you);
+  const talkLead = Math.abs(share - 0.5) < 0.05 ? "You both talked about as much."
+    : `${share > 0.5 ? who : "You"} talked ${Math.abs(share - 0.5) <= 0.15 ? "a little more" : "more"}.`;
+  const split = el("div", "split");
+  const a = el("span", "seg me"), b = el("span", "seg you");
+  a.style.flexGrow = String(talk.me); b.style.flexGrow = String(talk.you);
+  split.append(a, b); split.setAttribute("aria-hidden", "true");
+  const pct = v => `${Math.round(v / (talk.me + talk.you) * 100)}%`;
+  tiles.push(tagged(tag("Talking time"), lead(talkLead), split, keyRow(`${who} · ${pct(talk.me)}`, `You · ${pct(talk.you)}`)));
+
+  const clock = s => `${Math.floor(Math.round(s) / 60)}:${String(Math.round(s) % 60).padStart(2, "0")}`;
+  const top = Math.max(longest.me, longest.you, 1);
+  const bars = el("div", "side-bars");
+  for (const [label, tone, value] of [[who, "me", longest.me], ["You", "you", longest.you]]) {
+    const row = el("div", "side-bar-row");
+    const track = el("div", "side-bar-track"), bar = el("span", `side-bar ${tone}`);
+    bar.style.width = `${Math.max(4, value / top * 100)}%`;
+    track.append(bar);
+    row.append(el("span", "side-who", label), track, el("span", "side-num", clock(value)));
+    bars.append(row);
+  }
+  tiles.push(tagged(tag("Longest turn"), lead(`${longest.me >= longest.you ? who : "You"} held the floor longest.`), bars));
+
+  const high = Math.max(pace.me, pace.you), low = Math.min(pace.me, pace.you);
+  const paceLead = !high || (high - low) / high <= 0.08 ? "You matched each other’s pace." : `${pace.me > pace.you ? who : "You"} spoke faster.`;
+  const nums = el("div", "side-nums");
+  for (const [label, tone, value] of [[who, "me", pace.me], ["You", "you", pace.you]]) {
+    const col = el("div", "side-numcol");
+    col.append(el("b", null, String(Math.round(value))), swatchOf(label, tone));
+    nums.append(col);
+  }
+  tiles.push(tagged(tag("Pace"), lead(paceLead), nums, el("p", "side-unit", "Words a minute")));
+
+  const table = (heading, rows) => {
+    const t = el("div", "side-table");
+    const head = el("div", "side-row side-head");
+    head.append(el("span", "side-cell-label", heading ?? ""), swatchOf(who, "me"), swatchOf("You", "you"));
+    t.append(head);
+    for (const [label, x, y] of rows) {
+      const row = el("div", "side-row");
+      row.append(el("span", "side-cell-label", label), el("span", x > y ? "side-cell strong" : "side-cell", String(Math.round(x))),
+        el("span", y > x ? "side-cell strong" : "side-cell", String(Math.round(y))));
+      t.append(row);
+    }
+    return t;
+  };
+  const soft = softening.me + softening.you < 3 ? null : softening.me > softening.you * 1.15 ? `${name ?? "they"} softened a little more`
+    : softening.you > softening.me * 1.15 ? "you softened a little more" : "you both softened about as much";
+  const wordsLead = shared && soft ? `You both said “${shared.word}”, and ${soft}.` : shared ? `You both said “${shared.word}”.` : soft ? `${cap(soft)}.` : null;
+  if (wordsLead) {
+    const rows = [];
+    if (shared) rows.push([`“${shared.word}”`, shared.me, shared.you]);
+    if (soft) rows.push(["“maybe”, “I\u00a0think”", softening.me, softening.you]);
+    tiles.push(tagged(tag("Same words"), lead(wordsLead), table(null, rows)));
+  }
+
+  if (fillers.length) {
+    const mine = fillers.filter(f => f.me >= 3 && f.me > f.you).sort((x, y) => y.me - x.me)[0];
+    const yours = fillers.filter(f => f.you >= 3 && f.you > f.me).sort((x, y) => y.you - x.you)[0];
+    const owner = name ? `${name}’s` : "Theirs";
+    const fillerLead = mine && yours ? `${owner} is “${mine.word}”; yours is “${yours.word}”.` : mine ? `${owner} is “${mine.word}”.` : yours ? `Yours is “${yours.word}”.` : null;
+    const parts = [table("Times said", fillers.map(f => [`“${f.word}”`, f.me, f.you]))];
+    if (fillerLead) parts.unshift(lead(fillerLead));
+    tiles.push(tagged(tag("Filler words"), ...parts));
+  }
+
+  const fast = replies.me < 0.5 && replies.you < 0.5;
+  const track = el("div", "side-track");
+  track.append(el("span", "side-rail"));
+  for (const [tone, value] of [["me", replies.me], ["you", replies.you]]) {
+    const dot = el("span", `side-dot ${tone}`);
+    dot.style.setProperty("--p", String(Math.min(value, 2) / 2));
+    track.append(dot);
+  }
+  track.setAttribute("aria-hidden", "true");
+  const ends = el("div", "side-ends"); ends.append(el("span", null, "Instant"), el("span", null, "2 seconds"));
+  const secs = v => `${v.toFixed(2)} s`;
+  tiles.push(tagged(tag("Replies"), fast ? lead("No dead air.", replies.quick ? `You both answered in under half a second: ${replies.quick} replies came without a pause.` : null)
+    : lead(`${replies.me <= replies.you ? who : "You"} answered faster.`), track, ends, keyRow(`${who} · ${secs(replies.me)}`, `You · ${secs(replies.you)}`)));
+  return tiles;
 }
 
 function show(...nodes) {
@@ -478,35 +602,40 @@ function render(notes) {
   // Insights and the notes under two pills, one at a time, as in the app. The link opens on the
   // notes: they are what the people in the conversation came for, and always shared.
   const template = str(notes.template) ?? (Array.isArray(notes.sections) && notes.sections.length ? "Notes" : "Short notes");
-  const insightsPanel = panel(insights), notesPanel = panel(notesTiles.length ? notesTiles
-    : [el("p", "empty", "No notes for this conversation.")]);
+  const notesPanel = panel(notesTiles.length ? notesTiles : [el("p", "empty", "No notes for this conversation.")]);
+  const side = sideBySideTiles(notes.sideBySide, name);
+  // Insights, Side by side and the notes under pills, one at a time, as in the app. The link opens on
+  // Side by side when it was shared (the part the other person came for), otherwise on the notes.
+  const tabsList = [];
+  if (insights.length) tabsList.push(["insights", pill("Insights", null), panel(insights)]);
+  if (side.length) tabsList.push(["side-by-side", pill("Side by side", null), panel(side)]);
+  tabsList.push(["notes", pill(template, TEMPLATE_ICONS[template.toLowerCase()] ?? "notes"), notesPanel]);
   const nodes = [head];
-  if (insights.length) {
+  if (tabsList.length > 1) {
     const tabs = el("div", "pills");
     tabs.setAttribute("role", "tablist");
-    const insightsPill = pill("Insights", null), notesPill = pill(template, TEMPLATE_ICONS[template.toLowerCase()] ?? "notes");
     const select = (on) => {
-      for (const [button, body] of [[insightsPill, insightsPanel], [notesPill, notesPanel]]) {
+      for (const [, button, body] of tabsList) {
         const selected = button === on;
         button.setAttribute("aria-selected", String(selected));
         button.tabIndex = selected ? 0 : -1;
         body.hidden = !selected;
       }
     };
-    insightsPill.addEventListener("click", () => select(insightsPill));
-    notesPill.addEventListener("click", () => select(notesPill));
-    tabs.addEventListener("keydown", event => {
-      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-      const next = event.key === "ArrowLeft" ? insightsPill : notesPill;
-      select(next); next.focus();
-    });
-    tabs.append(insightsPill, notesPill);
-    for (const [button, body, id] of [[insightsPill, insightsPanel, "insights"], [notesPill, notesPanel, "notes"]]) {
+    for (const [id, button, body] of tabsList) {
+      button.addEventListener("click", () => select(button));
       button.id = `tab-${id}`; body.id = `panel-${id}`;
       button.setAttribute("aria-controls", body.id); body.setAttribute("role", "tabpanel"); body.setAttribute("aria-labelledby", button.id);
+      tabs.append(button);
     }
-    select(notesPill);
-    nodes.push(tabs, notesPanel, insightsPanel);
+    tabs.addEventListener("keydown", event => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      const at = tabsList.findIndex(([, button]) => button.getAttribute("aria-selected") === "true");
+      const next = tabsList[Math.min(tabsList.length - 1, Math.max(0, at + (event.key === "ArrowLeft" ? -1 : 1)))][1];
+      select(next); next.focus();
+    });
+    select((side.length ? tabsList.find(([id]) => id === "side-by-side") : tabsList.find(([id]) => id === "notes"))[1]);
+    nodes.push(tabs, ...tabsList.map(([, , body]) => body));
   } else {
     nodes.push(notesPanel);
   }
