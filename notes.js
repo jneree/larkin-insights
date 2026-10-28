@@ -451,11 +451,10 @@ function render(notes) {
   if (slipped.length) insights.push(tagged(tag("To work on", "to-work-on"), ...slipped.map(point)));
   const tryNext = texts(notes.tryNext);
   if (tryNext.length) insights.push(tagged(tag("What to do next", "next"), bullets(tryNext)));
-  // Larkin's take and "How the conversation went" left the app; older links still show them.
-  const take = (Array.isArray(notes.take) ? notes.take : []).map(item => str(item?.suggestion)).filter(Boolean);
-  if (take.length) insights.push(tagged(tag("Larkin’s take"), bullets(take)));
+  // Larkin's take left the app on 28 October 2026 and is no longer shown, even from older links.
 
-  // Notes: each group or template section under a grey tag, like the insights' tiles.
+  // Notes: each group or template section under a grey tag, like the insights' tiles. "How the
+  // conversation went" left the app too; older links still show it.
   const notesTiles = [];
   const overview = texts(notes.overview);
   if (overview.length) notesTiles.push(tagged(tag("How the conversation went"), bullets(overview)));
