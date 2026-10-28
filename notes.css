@@ -29,7 +29,12 @@
   --discover: #151515;
   --line: rgba(21, 21, 21, 0.07);
   --ink: #151515;
-  --ink-muted: #80807A;
+  --ink-muted: #666661;
+  --tag-grey: rgba(21, 21, 21, 0.07);
+  --tag-worked: #D8F3D0; --tag-worked-ink: #2B6E1F;
+  --tag-red: #FFE5E5; --tag-red-ink: #B3261E;
+  --rail: rgba(21, 21, 21, 0.18);
+  --dot-fill: #151515; --dot-record-line: #151515;
   --lime: #D2ED28;
   --on-lime: #151515;
   --on-dark: #FFFFFF;
@@ -50,6 +55,11 @@
     --line: rgba(255, 255, 255, 0.12);
     --ink: #FFFFFF;
     --ink-muted: #7F7F7A;
+    --tag-grey: rgba(255, 255, 255, 0.16);
+    --tag-worked: rgba(140, 224, 122, 0.12); --tag-worked-ink: #8EDB7F;
+    --tag-red: rgba(255, 95, 95, 0.18); --tag-red-ink: #FF6B6B;
+    --rail: rgba(255, 255, 255, 0.24);
+    --dot-fill: #D2ED28; --dot-record-line: transparent;
     --header-pill: #D2ED28;
     --on-header-pill: #151515;
   }
@@ -65,7 +75,7 @@ body {
   font-optical-sizing: auto;
   font-size: 16px;
   line-height: 21px;
-  font-weight: 450;
+  font-weight: 480;
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
 }
@@ -113,42 +123,98 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--ink); outline-o
 main.column { padding-top: 20px; padding-bottom: 64px; min-height: 52vh; display: grid; gap: 14px; align-content: start; }
 .status { color: var(--ink-muted); padding: 48px 6px; }
 .head { display: grid; gap: 6px; padding: 0 6px 4px; }
-.meta { color: var(--ink-muted); font-size: 13px; line-height: 18px; letter-spacing: 0; }
+.meta { color: var(--ink-muted); font-size: 16px; line-height: 21px; font-weight: 480; }
+.nowrap { white-space: nowrap; }
 /* The app's page title: 28 semibold, an exact 32 line, −1.5%. */
 h1 { font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.015em; overflow-wrap: anywhere; }
 .summary { margin-top: 8px; font-size: 16px; line-height: 21px; }
 .state { gap: 8px; }
 .state p { color: var(--ink-muted); }
 .state .pill { margin-top: 12px; justify-self: start; }
-.tiles-heading { font-size: 20px; line-height: 26px; font-weight: 700; letter-spacing: -0.01em; padding: 12px 6px 0; }
 
-/* The tile: its kind's icon and name, then its sentence, items and lists. */
+/* The app's conversation page (28 October 2026): white tiles, each opening with a tag; sentences
+   16/21 at weight 480; verdicts 16/21 at 500 in ink, then the rest in the one grey. */
+.panel { display: grid; gap: 14px; }
+.panel[hidden] { display: none; }
+.empty { color: var(--ink-muted); padding: 0 6px; }
 .tile {
   background: var(--tile); border-radius: 28px;
-  padding: 18px 20px 20px; display: grid; gap: 14px;
+  padding: 18px 20px 22px; display: grid; gap: 16px; justify-items: start;
 }
-.tile-head { display: flex; align-items: center; gap: 10px; }
-.tile-head img { width: 28px; height: 28px; flex: none; display: block; }
-.tile-name { font-size: 16px; line-height: 21px; font-weight: 500; letter-spacing: -0.01em; overflow-wrap: anywhere; }
-.sentence { font-size: 15px; line-height: 20px; overflow-wrap: anywhere; }
+.tile > * { justify-self: stretch; }
+.tile > .tag { justify-self: start; }
+.tag {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 5px 12px; border-radius: 14px;
+  font-size: 14px; line-height: 18px; font-weight: 500; letter-spacing: -0.01em; overflow-wrap: anywhere;
+  background: var(--tag-grey); color: var(--ink);
+}
+.tag.worked { background: var(--tag-worked); color: var(--tag-worked-ink); }
+.tag.to-work-on { background: var(--tag-red); color: var(--tag-red-ink); }
+.tag.next { background: var(--lime); color: var(--on-lime); }
+.trend { flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.verdict, .sentence { font-size: 16px; line-height: 21px; font-weight: 480; overflow-wrap: anywhere; }
+.verdict strong, .verdict.lead { font-weight: 500; color: var(--ink); }
 .soft { color: var(--ink-muted); }
-.detail { color: var(--ink-muted); font-size: 13px; line-height: 18px; letter-spacing: 0; }
-.items { display: grid; gap: 8px; }
-.item { background: var(--item); border-radius: 20px; padding: 14px 14px 14px 16px; display: grid; gap: 4px; }
-.item-text { font-size: 15px; line-height: 20px; overflow-wrap: anywhere; }
-/* A skill's point: whether it slipped or worked, above its sentence. */
-.point { display: grid; gap: 4px; }
 
-/* Meeting notes: subheadings in 15 semibold, points with grey bullets. */
-.notes { display: grid; gap: 14px; }
-.notes h4 { font-size: 15px; line-height: 20px; font-weight: 600; }
-.bullets { display: grid; gap: 8px; }
-.notes h4 + .bullets { margin-top: -6px; }
-.bullets li { position: relative; padding-left: 14px; font-size: 15px; line-height: 20px; overflow-wrap: anywhere; }
+/* The notes' bullets: a grey dot, 8 from the words; sub-points indented 18, in grey. */
+.bullets { display: grid; gap: 6px; }
+.bullets li { position: relative; padding-left: 16px; font-size: 16px; line-height: 21px; font-weight: 480; overflow-wrap: anywhere; }
 .bullets li::before { content: "•"; position: absolute; left: 0; top: 0; color: var(--ink-muted); }
-/* Sub-points of a point (Detailed notes): indented bullets in the muted ink. */
-.bullets.sub { margin-top: 6px; gap: 6px; }
+.bullets.sub { margin-top: 6px; margin-left: 2px; }
 .bullets.sub li { color: var(--ink-muted); }
+
+/* Insights and the notes: two pills, the one that's on filled with ink. */
+.pills { display: flex; flex-wrap: wrap; gap: 10px; padding: 6px 0 0; }
+.tab {
+  display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 16px; border: 0; border-radius: 999px;
+  background: var(--tile); color: var(--ink); cursor: pointer;
+  font: 600 15px/20px "DM Sans", ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.01em; white-space: nowrap;
+}
+.tab:has(.template-icon) { padding: 0 16px 0 14px; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--tile); }
+.template-icon {
+  width: 16px; height: 16px; flex: none; background: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat;
+}
+.icon-tothepoint { --icon: url("/images/template-tothepoint.svg"); }
+.icon-notes { --icon: url("/images/template-notes.svg"); }
+.icon-oneonone { --icon: url("/images/template-oneonone.svg"); }
+.icon-teammeeting { --icon: url("/images/template-teammeeting.svg"); }
+.icon-standup { --icon: url("/images/template-standup.svg"); }
+.icon-brainstorm { --icon: url("/images/template-brainstorm.svg"); }
+.icon-clientcall { --icon: url("/images/template-clientcall.svg"); }
+.icon-salesdiscovery { --icon: url("/images/template-salesdiscovery.svg"); }
+.icon-interview { --icon: url("/images/template-interview.svg"); }
+.icon-lecture { --icon: url("/images/template-lecture.svg"); }
+.icon-talk { --icon: url("/images/template-talk.svg"); }
+.icon-catchup { --icon: url("/images/template-catchup.svg"); }
+
+/* How they talked: each scale's ends over a hairline, this conversation's dot, the usual's ring. */
+.scales { display: grid; gap: 18px; }
+.scale { display: grid; gap: 8px; }
+.scale .ends { display: flex; justify-content: space-between; gap: 8px; }
+.scale .end { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); white-space: nowrap; }
+.scale .end.leaned { font-weight: 500; color: var(--ink); }
+.highest {
+  padding: 1px 7px; border-radius: 999px; background: var(--lime); color: var(--on-lime);
+  font-size: 12px; line-height: 16px; font-weight: 500;
+}
+.scale .track { position: relative; height: 16px; --dot: 16px; --ring: 14px; }
+.scale .track::before { content: ""; position: absolute; left: 0; right: 0; top: 7px; height: 2px; border-radius: 1px; background: var(--rail); }
+.scale .track .dot, .scale .track .ring { position: absolute; top: 50%; transform: translateY(-50%); border-radius: 50%; }
+.scale .track .dot { width: var(--dot); height: var(--dot); left: calc(var(--p) * (100% - var(--dot))); }
+.scale .track .ring { width: var(--ring); height: var(--ring); left: calc(var(--u) * (100% - var(--ring))); }
+.scale .track .lit {
+  position: absolute; top: 6px; height: 4px; border-radius: 2px; background: var(--lime);
+  left: min(calc(var(--u) * (100% - var(--ring)) + var(--ring) / 2), calc(var(--p) * (100% - var(--dot)) + var(--dot) / 2));
+  right: calc(100% - max(calc(var(--u) * (100% - var(--ring)) + var(--ring) / 2), calc(var(--p) * (100% - var(--dot)) + var(--dot) / 2)));
+}
+.dot { background: var(--dot-fill); }
+.dot.highest-dot { background: var(--lime); box-shadow: inset 0 0 0 2px var(--dot-record-line); }
+.ring { box-sizing: border-box; border: 2px solid var(--ink-muted); background: var(--tile); }
+.key { display: flex; flex-wrap: wrap; gap: 16px; }
+.key-item { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); }
+.key-item .dot, .key-item .ring { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
 
 /* The hook: a white tile with the page's one lime button. */
 .hook { margin-top: 20px; padding: 22px 20px 20px; border-radius: 28px; background: var(--tile); display: grid; gap: 10px; justify-items: start; }

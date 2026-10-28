@@ -13,71 +13,152 @@ function el(tag, className, text) {
   if (text !== undefined) node.textContent = text;
   return node;
 }
-function list(items, className) {
-  const ul = el("ul", className);
-  for (const item of items) ul.append(el("li", null, item));
-  return ul;
-}
-// Points with their sub-points under them (Detailed notes, 26 October 2026).
-function nested(items, details, className) {
-  const ul = el("ul", className);
-  items.forEach((item, index) => {
-    const li = el("li", null, item);
-    const sub = texts(Array.isArray(details) ? details[index] : null);
-    if (sub.length) li.append(list(sub, "bullets sub"));
-    ul.append(li);
-  });
-  return ul;
-}
 function texts(value) {
   return Array.isArray(value) ? value.filter(item => typeof item === "string" && item.trim()) : [];
 }
-// Insight points: plain text (older links) or { text, why, next }.
+// Insight points: plain text (older links) or { text, why, next, lead }.
 function points(value) {
   if (!Array.isArray(value)) return [];
   return value.map(item => typeof item === "string" ? { text: item } : item)
     .filter(item => item && typeof item.text === "string" && item.text.trim())
-    .map(item => ({ text: item.text, why: typeof item.why === "string" ? item.why : null, next: typeof item.next === "string" ? item.next : null }));
+    .map(item => ({ text: item.text, lead: str(item.lead) }));
 }
 
-// The app's tile (12 October 2026 guideline): its kind's glossy icon and its name, then what it says.
-const KINDS = new Set(["conversation", "insight", "you", "focus", "todo"]);
-function tile(kind, title, ...children) {
+// The app's conversation page (28 October 2026): white tiles, each opening with a tag. Grey, green
+// for what worked and red for what to work on with a small rising or falling line, lime for what
+// to do next.
+const SVG = "http://www.w3.org/2000/svg";
+function svg(tag, attributes) {
+  const node = document.createElementNS(SVG, tag);
+  for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
+  return node;
+}
+function trend(rising) {
+  const icon = svg("svg", { viewBox: "0 0 12 8", width: "12", height: "8", "aria-hidden": "true", class: "trend" });
+  const y = value => rising ? value : 8 - value;
+  icon.append(svg("path", { d: `M0 ${y(8)} L4 ${y(4)} L7 ${y(6.5)} L12 ${y(0)} M8 ${y(0)} L12 ${y(0)} L12 ${y(4)}` }));
+  return icon;
+}
+function tag(text, tone = "grey") {
+  const node = el("h2", `tag ${tone}`);
+  node.append(el("span", null, text));
+  if (tone === "worked" || tone === "to-work-on") node.append(trend(tone === "worked"));
+  return node;
+}
+function tagged(label, ...children) {
   const node = el("section", "tile");
-  // Under a heading that already names it, a tile has no icon or name (13 October 2026).
-  if (title) {
-    const head = el("div", "tile-head");
-    if (KINDS.has(kind)) {
-      const icon = el("img");
-      icon.src = `/images/kind-${kind}.svg`;
-      icon.alt = "";
-      icon.width = 28;
-      icon.height = 28;
-      head.append(icon);
+  node.append(label, ...children);
+  return node;
+}
+/// A verdict at 16/500 in ink, then what happened in the one grey.
+function verdict(lead, rest) {
+  const node = el("p", "verdict");
+  node.append(el("strong", null, lead));
+  if (rest) node.append(document.createTextNode(" "), el("span", "soft", rest));
+  return node;
+}
+/// "Curious and open." and the rest of the paragraph.
+function leadOf(text) {
+  const match = /[.!?…]\s/.exec(text);
+  if (!match) return [text, null];
+  const rest = text.slice(match.index + 2).trim();
+  return [text.slice(0, match.index + 1), rest || null];
+}
+function point(item) {
+  if (!item.lead) return el("p", "verdict", item.text);
+  return verdict(/[.!?…]$/.test(item.lead) ? item.lead : `${item.lead}.`, item.text);
+}
+/// The notes' bullets, each point with its sub-points under it (Detailed notes).
+function bullets(entries, details = []) {
+  const ul = el("ul", "bullets");
+  entries.forEach((entry, index) => {
+    const li = el("li", null, entry);
+    const sub = texts(details[index]);
+    if (sub.length) {
+      const inner = el("ul", "bullets sub");
+      for (const text of sub) inner.append(el("li", null, text));
+      li.append(inner);
     }
-    head.append(el("h3", "tile-name", title));
-    node.append(head);
-  }
+    ul.append(li);
+  });
+  return ul;
+}
+function panel(children) {
+  const node = el("div", "panel");
   node.append(...children);
   return node;
 }
-function heading(text) { return el("h2", "tiles-heading", text); }
-/// A sentence with its key words in ink and the rest in the one grey.
-function sentence(ink, grey) {
-  const node = el("p", "sentence");
-  node.append(document.createTextNode(ink));
-  if (grey) node.append(document.createTextNode(" "), el("span", "soft", grey));
-  return node;
-}
-/// Inner cards: their words and an optional grey line.
-function items(entries) {
-  const node = el("div", "items");
-  for (const [text, detail] of entries) {
-    const item = el("div", "item");
-    item.append(el("p", "item-text", text));
-    if (detail) item.append(el("p", "detail", detail));
-    node.append(item);
+
+// The notes pill names the template, with its icon (the app's, as masks so they take the pill's ink).
+const TEMPLATE_ICONS = {
+  "short notes": "tothepoint", "notes": "notes", "detailed notes": "notes", "1:1": "oneonone", "team meeting": "teammeeting",
+  "standup": "standup", "brainstorm": "brainstorm", "client call": "clientcall", "sales discovery": "salesdiscovery",
+  "interview": "interview", "lecture": "lecture", "talk": "talk", "catch-up": "catchup",
+};
+function pill(text, icon) {
+  const button = el("button", "tab");
+  button.type = "button";
+  button.setAttribute("role", "tab");
+  if (icon) {
+    const mark = el("span", `template-icon icon-${icon}`);
+    mark.setAttribute("aria-hidden", "true");
+    button.append(mark);
   }
+  button.append(el("span", null, text));
+  return button;
+}
+
+/// How they talked: the sentence, then each scale with this conversation's dot and their usual's
+/// ring. A record lights its scale: a lime line from the usual, a lime dot and "Highest ever".
+function talkedTile(talked, name) {
+  const scales = (talked && Array.isArray(talked.scales) ? talked.scales : [])
+    .filter(s => str(s?.left) && str(s?.right) && typeof s.position === "number");
+  if (!scales.length) return null;
+  const clamp = value => Math.min(1, Math.max(0, value));
+  const node = tagged(tag(name ? `How ${name} talked` : "How they talked"));
+  if (str(talked.sentence)) node.append(el("p", "verdict lead", talked.sentence));
+  const list = el("div", "scales");
+  const usualSeen = scales.some(s => typeof s.usual === "number");
+  for (const scale of scales) {
+    const row = el("div", "scale");
+    const position = clamp(scale.position), usual = typeof scale.usual === "number" ? clamp(scale.usual) : null;
+    const record = scale.record === "left" || scale.record === "right" ? scale.record : null;
+    const leaned = record ?? (scale.leaned === "left" || scale.leaned === "right" ? scale.leaned : null);
+    const ends = el("div", "ends");
+    for (const side of ["left", "right"]) {
+      const end = el("span", leaned === side ? "end leaned" : "end");
+      const label = el("span", null, side === "left" ? scale.left : scale.right);
+      const chip = record === side ? el("span", "highest", "Highest ever") : null;
+      if (chip && side === "right") end.append(chip);
+      end.append(label);
+      if (chip && side === "left") end.append(chip);
+      ends.append(end);
+    }
+    const track = el("div", "track");
+    track.style.setProperty("--p", String(position));
+    if (usual !== null) {
+      track.style.setProperty("--u", String(usual));
+      if (record) track.append(el("span", "lit"));
+      track.append(el("span", "ring"));
+    }
+    track.append(el("span", record ? "dot highest-dot" : "dot"));
+    track.setAttribute("aria-hidden", "true");
+    let said = `${scale.left} to ${scale.right}: ${Math.round(position * 100)}% towards ${scale.right.toLowerCase()}`;
+    if (usual !== null) said += `, usually ${Math.round(usual * 100)}%`;
+    if (record) said += ". Highest ever.";
+    row.setAttribute("role", "img");
+    row.setAttribute("aria-label", said);
+    ends.setAttribute("aria-hidden", "true");
+    row.append(ends, track);
+    list.append(row);
+  }
+  node.append(list);
+  const key = el("div", "key");
+  key.setAttribute("aria-hidden", "true");
+  const mark = (className, text) => { const item = el("span", "key-item"); item.append(el("span", className), el("span", null, text)); return item; };
+  key.append(mark("dot", "This conversation"));
+  if (usualSeen) key.append(mark("ring", name ? `${name}’s usual` : "Their usual"));
+  node.append(key);
   return node;
 }
 
@@ -343,93 +424,100 @@ function reveal(sections) {
 
 function render(notes) {
   if (notes.kind === "report") return renderReport(notes);
-  const nodes = [];
-  const name = typeof notes.sharedBy === "string" ? notes.sharedBy : null;
+  const name = str(notes.sharedBy);
 
-  // The header, as on the app's conversation page and its share sheet: when, and who shared it.
+  // The header, as on the app's conversation page (28 October 2026): the title, the date under it,
+  // then who was talking and why.
   const head = el("header", "head");
-  const when = typeof notes.when === "string" ? notes.when.replaceAll(" · ", ", ") : null;
-  const by = name ? `shared by ${name}` : "shared from Larkin";
-  head.append(el("p", "meta", when ? `${when}, ${by}` : by.charAt(0).toUpperCase() + by.slice(1)));
-  head.append(el("h1", null, notes.title));
-  if (typeof notes.summary === "string") head.append(el("p", "summary", notes.summary));
-  nodes.push(head);
+  const by = name ? `Shared by ${name}` : "Shared from Larkin";
+  const meta = el("p", "meta");
+  if (str(notes.when)) meta.append(document.createTextNode(`${notes.when} · `));
+  meta.append(el("span", "nowrap", by));
+  head.append(el("h1", null, notes.title), meta);
+  if (str(notes.summary)) head.append(el("p", "summary", notes.summary));
 
-  // A heading per section, as on the app's conversation page (13 October 2026): Insights, Notes,
-  // Larkin's take, To-do. Tiles under a heading that names them have no icon or name.
-  const overview = texts(notes.overview);
-  if (overview.length) nodes.push(heading("How the conversation went"), tile(null, null, list(overview, "bullets")));
-
-  // The sharer's own coaching is written to them ("you"), so its names say whose it is.
-  const areas = (Array.isArray(notes.insights) ? notes.insights : []).filter(area => typeof area?.title === "string");
+  // Insights: the sharer's own coaching is written to them ("you"), so its tags say whose it is.
+  const insights = [];
+  const cameAcross = str(notes.cameAcross);
+  if (cameAcross) {
+    const [lead, rest] = leadOf(cameAcross);
+    insights.push(tagged(tag(name ? `How ${name} came across` : "How they came across"), verdict(lead, rest)));
+  }
+  const talked = talkedTile(notes.talked, name);
+  if (talked) insights.push(talked);
+  const areas = Array.isArray(notes.insights) ? notes.insights : [];
+  const worked = areas.flatMap(area => points(area?.worked)), slipped = areas.flatMap(area => points(area?.slipped));
+  if (worked.length) insights.push(tagged(tag("Worked", "worked"), ...worked.map(point)));
+  if (slipped.length) insights.push(tagged(tag("To work on", "to-work-on"), ...slipped.map(point)));
   const tryNext = texts(notes.tryNext);
-  const cameAcross = typeof notes.cameAcross === "string" ? notes.cameAcross : null;
-  if (cameAcross || areas.length || tryNext.length) {
-    nodes.push(heading(name ? `Insights for ${name}` : "Their insights"));
-    if (cameAcross) nodes.push(tile("you", name ? `How ${name} came across` : "How they came across", sentence(cameAcross)));
-    // One lime tile per skill: whether it slipped or worked, then what happened in one ink sentence.
-    for (const area of areas) {
-      const parts = [];
-      for (const [label, items] of [["What worked", points(area.worked)], ["What slipped", points(area.slipped)]]) {
-        for (const point of items) {
-          const block = el("div", "point");
-          block.append(el("p", "detail", label), sentence([point.text, point.why].filter(Boolean).join(" ")));
-          parts.push(block);
-        }
-      }
-      if (parts.length) nodes.push(tile("insight", area.title, ...parts));
-    }
-    if (tryNext.length) nodes.push(tile("focus", "Try next", items(tryNext.map(text => [text, null]))));
-  }
+  if (tryNext.length) insights.push(tagged(tag("What to do next", "next"), bullets(tryNext)));
+  // Larkin's take and "How the conversation went" left the app; older links still show them.
+  const take = (Array.isArray(notes.take) ? notes.take : []).map(item => str(item?.suggestion)).filter(Boolean);
+  if (take.length) insights.push(tagged(tag("Larkin’s take"), bullets(take)));
 
-  // Notes as one tile written like meeting notes.
-  const groups = notes.notes && typeof notes.notes === "object"
-    ? [[null, texts(notes.notes.keyPoints)], ["Decisions", texts(notes.notes.decisions)], ["Open questions", texts(notes.notes.openQuestions)]]
-        .filter(([, entries]) => entries.length)
-    : [];
-  if (groups.length) {
-    const body = el("div", "notes");
-    for (const [label, entries] of groups) {
-      if (label) body.append(el("h4", null, label));
-      body.append(list(entries, "bullets"));
-    }
-    nodes.push(heading("Notes"), tile(null, null, body));
-  }
-
-  // Notes written with a template (22 October 2026): its name, then a tile per section with its
-  // title inside, as on the app's conversation page.
-  const templated = (Array.isArray(notes.sections) ? notes.sections : [])
-    .filter(section => section && typeof section.title === "string")
-    .map(section => ({ title: section.title, text: str(section.text), points: texts(section.points),
-      details: Array.isArray(section.details) ? section.details : [] }))
-    .filter(section => section.text || section.points.length);
-  if (templated.length) {
-    const template = str(notes.template);
-    // "1:1 notes"; names that already say notes ("Detailed notes") as they are.
-    nodes.push(heading(!template ? "Notes" : /notes$/i.test(template) ? template : `${template} notes`));
-    for (const section of templated) {
-      const parts = [];
-      if (section.text) parts.push(sentence(section.text));
-      if (section.points.length) parts.push(nested(section.points, section.details, "bullets"));
-      nodes.push(tile(null, section.title, ...parts));
+  // Notes: each group or template section under a grey tag, like the insights' tiles.
+  const notesTiles = [];
+  const overview = texts(notes.overview);
+  if (overview.length) notesTiles.push(tagged(tag("How the conversation went"), bullets(overview)));
+  if (notes.notes && typeof notes.notes === "object") {
+    for (const [label, entries] of [["Main points", texts(notes.notes.keyPoints)], ["Decisions", texts(notes.notes.decisions)],
+      ["Open questions", texts(notes.notes.openQuestions)]]) {
+      if (entries.length) notesTiles.push(tagged(tag(label), bullets(entries)));
     }
   }
-
-  // Larkin's take: its suggestions to the sharer, as one list.
-  const take = Array.isArray(notes.take)
-    ? notes.take.filter(item => item && typeof item.suggestion === "string")
-    : [];
-  if (take.length) nodes.push(heading("Larkin’s take"), tile(null, null, list(take.map(item => item.suggestion), "bullets")));
-
+  for (const section of Array.isArray(notes.sections) ? notes.sections : []) {
+    if (!str(section?.title)) continue;
+    const parts = [];
+    if (str(section.text)) parts.push(el("p", "sentence", section.text));
+    const sectionPoints = texts(section.points);
+    if (sectionPoints.length) parts.push(bullets(sectionPoints, Array.isArray(section.details) ? section.details : []));
+    if (parts.length) notesTiles.push(tagged(tag(section.title), ...parts));
+  }
   const todos = texts(notes.todos);
-  if (todos.length) nodes.push(heading("To-do"), tile(null, null, list(todos, "bullets")));
+  if (todos.length) notesTiles.push(tagged(tag("To-do"), bullets(todos)));
+
+  // Insights and the notes under two pills, one at a time, as in the app. The link opens on the
+  // notes: they are what the people in the conversation came for, and always shared.
+  const template = str(notes.template) ?? (Array.isArray(notes.sections) && notes.sections.length ? "Notes" : "Short notes");
+  const insightsPanel = panel(insights), notesPanel = panel(notesTiles.length ? notesTiles
+    : [el("p", "empty", "No notes for this conversation.")]);
+  const nodes = [head];
+  if (insights.length) {
+    const tabs = el("div", "pills");
+    tabs.setAttribute("role", "tablist");
+    const insightsPill = pill("Insights", null), notesPill = pill(template, TEMPLATE_ICONS[template.toLowerCase()] ?? "notes");
+    const select = (on) => {
+      for (const [button, body] of [[insightsPill, insightsPanel], [notesPill, notesPanel]]) {
+        const selected = button === on;
+        button.setAttribute("aria-selected", String(selected));
+        button.tabIndex = selected ? 0 : -1;
+        body.hidden = !selected;
+      }
+    };
+    insightsPill.addEventListener("click", () => select(insightsPill));
+    notesPill.addEventListener("click", () => select(notesPill));
+    tabs.addEventListener("keydown", event => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      const next = event.key === "ArrowLeft" ? insightsPill : notesPill;
+      select(next); next.focus();
+    });
+    tabs.append(insightsPill, notesPill);
+    for (const [button, body, id] of [[insightsPill, insightsPanel, "insights"], [notesPill, notesPanel, "notes"]]) {
+      button.id = `tab-${id}`; body.id = `panel-${id}`;
+      button.setAttribute("aria-controls", body.id); body.setAttribute("role", "tabpanel"); body.setAttribute("aria-labelledby", button.id);
+    }
+    select(notesPill);
+    nodes.push(tabs, notesPanel, insightsPanel);
+  } else {
+    nodes.push(notesPanel);
+  }
 
   // The hook: what Larkin would give the reader, about themselves, privately.
   const hook = el("aside", "hook");
   const cta = el("a", "pill", "Get Larkin");
   cta.href = "https://getlarkin.com/?utm_source=shared-notes&utm_medium=link&utm_content=hook";
   hook.append(el("h2", null, "How did you come across?"),
-    el("p", null, "Larkin writes notes like these from every conversation, and gives you a private read on how you came across: what worked, what slipped and what to try next."),
+    el("p", null, "Larkin writes notes like these from every conversation, and gives you a private read on how you came across: what worked, what to work on and what to do next."),
     cta);
   nodes.push(hook);
 
