@@ -203,7 +203,7 @@ function sideBySideTiles(raw, name) {
   const reading = str(raw.readingShared), me = raw.you ?? {}, you = raw.them ?? {};
   if (reading) {
     const [first, rest] = leadOf(cap(reading.replaceAll("{name}", name ?? "they")));
-    tiles.push(tagged(tag("How you came across"), lead(first, rest)));
+    tiles.push(tagged(tag("How you came across", "next"), lead(first, rest)));
   }
   if (str(me.caredAbout) && str(you.caredAbout)) {
     const cols = el("div", "side-cols");
@@ -212,7 +212,7 @@ function sideBySideTiles(raw, name) {
       col.append(swatchOf(label, tone), el("p", "side-phrase", hold(`${value}.`)));
       cols.append(col);
     }
-    tiles.push(tagged(tag("Cared most about"), cols));
+    tiles.push(tagged(tag("Cared most about", "next"), cols));
   }
 
   // How you talked, both on the four scales (29 October 2026): the sharer in ink, the reader in grey.
@@ -245,7 +245,7 @@ function sideBySideTiles(raw, name) {
       row.append(ends, track);
       list.append(row);
     }
-    tiles.push(tagged(tag("How you talked"), lead(talkedLead), list, keyRow(who, "You")));
+    tiles.push(tagged(tag("How you talked", "next"), lead(talkedLead), list, keyRow(who, "You")));
   }
 
   const share = talk.me / (talk.me + talk.you);
@@ -256,7 +256,7 @@ function sideBySideTiles(raw, name) {
   a.style.flexGrow = String(talk.me); b.style.flexGrow = String(talk.you);
   split.append(a, b); split.setAttribute("aria-hidden", "true");
   const pct = v => `${Math.round(v / (talk.me + talk.you) * 100)}%`;
-  tiles.push(tagged(tag("Talking time"), lead(talkLead), split, keyRow(`${who} · ${pct(talk.me)}`, `You · ${pct(talk.you)}`)));
+  tiles.push(tagged(tag("Talking time", "next"), lead(talkLead), split, keyRow(`${who} · ${pct(talk.me)}`, `You · ${pct(talk.you)}`)));
 
   const clock = s => `${Math.floor(Math.round(s) / 60)}:${String(Math.round(s) % 60).padStart(2, "0")}`;
   const top = Math.max(longest.me, longest.you, 1);
@@ -269,7 +269,7 @@ function sideBySideTiles(raw, name) {
     row.append(el("span", "side-who", label), track, el("span", "side-num", clock(value)));
     bars.append(row);
   }
-  tiles.push(tagged(tag("Longest turn"), lead(`${longest.me >= longest.you ? who : "You"} held the floor longest.`), bars));
+  tiles.push(tagged(tag("Longest turn", "next"), lead(`${longest.me >= longest.you ? who : "You"} held the floor longest.`), bars));
 
   if (fillers.length) {
     const mine = fillers.filter(f => f.me >= 3 && f.me > f.you).sort((x, y) => y.me - x.me)[0];
@@ -278,7 +278,7 @@ function sideBySideTiles(raw, name) {
     const fillerLead = mine && yours ? `${owner} is “${mine.word}”; yours is “${yours.word}”.` : mine ? `${owner} is “${mine.word}”.` : yours ? `Yours is “${yours.word}”.` : null;
     const parts = [table("Times said", fillers.map(f => [`“${f.word}”`, f.me, f.you]))];
     if (fillerLead) parts.unshift(lead(fillerLead));
-    tiles.push(tagged(tag("Filler words"), ...parts));
+    tiles.push(tagged(tag("Filler words", "next"), ...parts));
   }
 
   const high = Math.max(pace.me, pace.you), low = Math.min(pace.me, pace.you);
@@ -289,7 +289,7 @@ function sideBySideTiles(raw, name) {
     col.append(el("b", null, String(Math.round(value))), swatchOf(label, tone));
     nums.append(col);
   }
-  tiles.push(tagged(tag("Pace"), lead(paceLead), nums, el("p", "side-unit", "Words a minute")));
+  tiles.push(tagged(tag("Pace", "next"), lead(paceLead), nums, el("p", "side-unit", "Words a minute")));
 
   const soft = softening.me + softening.you < 3 ? null : softening.me > softening.you * 1.15 ? `${name ?? "they"} softened a little more`
     : softening.you > softening.me * 1.15 ? "you softened a little more" : "you both softened about as much";
@@ -298,7 +298,7 @@ function sideBySideTiles(raw, name) {
     const rows = [];
     if (shared) rows.push([`“${shared.word}”`, shared.me, shared.you]);
     if (soft) rows.push(["“maybe”, “I\u00a0think”", softening.me, softening.you]);
-    tiles.push(tagged(tag("Same words"), lead(wordsLead), table(null, rows)));
+    tiles.push(tagged(tag("Same words", "next"), lead(wordsLead), table(null, rows)));
   }
 
   const fast = replies.me < 0.5 && replies.you < 0.5;
@@ -312,7 +312,7 @@ function sideBySideTiles(raw, name) {
   track.setAttribute("aria-hidden", "true");
   const ends = el("div", "side-ends"); ends.append(el("span", null, "Instant"), el("span", null, "2 seconds"));
   const secs = v => `${v.toFixed(2)} s`;
-  tiles.push(tagged(tag("Replies"), fast ? lead("No dead air.", replies.quick ? `You both answered in under half a second: ${replies.quick} replies came without a pause.` : null)
+  tiles.push(tagged(tag("Replies", "next"), fast ? lead("No dead air.", replies.quick ? `You both answered in under half a second: ${replies.quick} replies came without a pause.` : null)
     : lead(`${replies.me <= replies.you ? who : "You"} answered faster.`), track, ends, keyRow(`${who} · ${secs(replies.me)}`, `You · ${secs(replies.you)}`)));
   return tiles;
 }
