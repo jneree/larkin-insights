@@ -399,3 +399,12 @@ body.motion .report-line .word.on { opacity: 1; }
 .side-dot { position: absolute; top: 0; width: 16px; height: 16px; border-radius: 50%; left: calc(var(--p) * (100% - 16px)); }
 .side-dot.you, .side-dot.me { box-shadow: 0 0 0 2px var(--tile); }
 .side-ends { display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); margin-top: -10px; }
+.side-halves { display: grid; grid-template-columns: 1fr 1fr; }
+.side-half { display: grid; gap: 6px; align-content: start; }
+.side-half + .side-half { border-left: 1px solid var(--hairline); padding-left: 16px; }
+.side-big { font-size: 34px; line-height: 38px; font-weight: 600; letter-spacing: -0.02em; }
+.side-unit-plain { font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); }
+.side-nudge { display: grid; gap: 10px; justify-items: start; padding-top: 14px; border-top: 1px solid var(--hairline); }
+.side-nudge p { font-size: 16px; line-height: 21px; font-weight: 480; color: var(--ink-muted); }
+.side-get { display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 999px; background: var(--control);
+  box-shadow: inset 0 0 0 1px var(--control-line); font-size: 14px; line-height: 18px; font-weight: 600; text-decoration: none; color: var(--ink); }

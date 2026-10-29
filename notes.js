@@ -281,6 +281,31 @@ function sideBySideTiles(raw, name) {
     tiles.push(tagged(tag("Filler words", "next"), ...parts));
   }
 
+  // Vocabulary (29 October 2026): the comparison only; a score out of 100 comes with a Larkin
+  // report, so the reader is invited to get their own.
+  const vocab = raw.vocabulary && typeof raw.vocabulary === "object" ? pair(raw.vocabulary) : null;
+  if (vocab && vocab.me + vocab.you > 0) {
+    const said = raw.words ? pair(raw.words) : null, different = raw.distinct ? pair(raw.distinct) : null;
+    const top = Math.max(vocab.me, vocab.you), bottom = Math.min(vocab.me, vocab.you);
+    const meLead = vocab.me > vocab.you;
+    const saidLess = said ? (meLead ? said.me < said.you : said.you < said.me) : false;
+    const vocabLead = (top - bottom) / top < 0.05 ? "You both drew on a similar range of words."
+      : `${meLead ? who : "You"} ${saidLess ? "said less, with a wider vocabulary" : "had the wider vocabulary"}.`;
+    const count = n => Math.round(n).toLocaleString("en-US");
+    const halves = el("div", "side-halves");
+    for (const [label, tone, value, s, d] of [[who, "me", vocab.me, said?.me, different?.me], ["You", "you", vocab.you, said?.you, different?.you]]) {
+      const half = el("div", "side-half");
+      half.append(el("b", "side-big", String(Math.round(value))), swatchOf(label, tone));
+      if (s && d) half.append(el("p", "side-unit-plain", `${count(d)} different words in\u00a0${count(s)}`));
+      halves.append(half);
+    }
+    const nudge = el("div", "side-nudge");
+    const get = el("a", "side-get", "Get Larkin");
+    get.href = "https://getlarkin.com/?utm_source=shared-notes&utm_medium=link&utm_content=vocabulary";
+    nudge.append(el("p", null, hold("Want your own vocabulary score? Use Larkin for a few days to get yours.")), get);
+    tiles.push(tagged(tag("Vocabulary", "next"), lead(vocabLead), halves, el("p", "side-unit", "Different words in every 1,000"), nudge));
+  }
+
   const high = Math.max(pace.me, pace.you), low = Math.min(pace.me, pace.you);
   const paceLead = !high || (high - low) / high <= 0.08 ? "You matched each other’s pace." : `${pace.me > pace.you ? who : "You"} spoke faster.`;
   const nums = el("div", "side-nums");
