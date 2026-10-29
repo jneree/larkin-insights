@@ -421,7 +421,9 @@ body.motion .report-line .word.on { opacity: 1; }
 .range-band { position: absolute; top: 3px; height: 6px; border-radius: 3px; background: var(--rail); }
 .range-tick { position: absolute; top: 0; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--ink-muted); }
 .range-dot { width: 12px; height: 12px; }
-.range-ends { margin-top: 5px; }
+.pace-words { gap: 10px; }
+.pace-numbers { gap: 8px; }
+.chip { justify-self: start; }
 .side-unit-small { font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); }
 
 /* Side by side: each scale's lines behind How you talked, and who was left out (29 October 2026). */

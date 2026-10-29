@@ -375,25 +375,36 @@ function sideBySideTiles(raw, name) {
       el("div", "side-hair"), yours));
   }
 
-  // Pace on the range of a published study, as in the app (29 October 2026), and the two falling into
-  // each other's pace between the first and second half (Manson, Bryant, Gervais and Kline, 2013).
+  // Pace on the range of a published study, as in the app (Julien, 29 October 2026; Figma "Pace ·
+  // words a minute 3"): where each stands, and a green tag when the two fell into each other's pace
+  // between the first and second half (Manson, Bryant, Gervais and Kline, 2013).
   const same = p => { const hi = Math.max(p.me, p.you), lo = Math.min(p.me, p.you); return !hi || (hi - lo) / hi <= 0.08; };
   const halves = raw.paceHalves && typeof raw.paceHalves === "object" ? { first: pair(raw.paceHalves.first), second: pair(raw.paceHalves.second) } : null;
-  const before = halves ? Math.abs(halves.first.me - halves.first.you) : 0, after = halves ? Math.abs(halves.second.me - halves.second.you) : 0;
+  const before = halves ? Math.round(Math.abs(halves.first.me - halves.first.you)) : 0, after = halves ? Math.round(Math.abs(halves.second.me - halves.second.you)) : 0;
   const converged = !!halves && before > 0 && after <= before * 2 / 3 && same(halves.second);
-  const paceLead = same(pace) ? "You spoke at the same pace." : `${pace.me > pace.you ? who : "You"} spoke faster.`;
-  const paceDetail = !converged ? null : same(pace) ? "You fell into each other’s pace as you talked. A study found that people who do this cooperate more."
-    : "You moved closer to each other’s pace as you talked.";
+  const paceWords = el("div", "lead-block pace-words");
+  paceWords.append(el("p", "headline", hold(same(pace) ? "You spoke at the same pace." : `${pace.me > pace.you ? who : "You"} spoke faster.`)));
+  if (converged) {
+    const chip = el("p", "tag worked chip");
+    chip.append(el("span", null, "Matching pace is a sign of cooperation"), trend(true));
+    paceWords.append(chip, el("p", "sentence soft",
+      hold(`You moved closer as you talked: ${before} words a minute apart at first, ${after || "level"} by the end. In a study, pairs who did this cooperated more.`)));
+  }
   const STUDY = { low: 158, average: 236, high: 312 };
-  const zone = v => v < STUDY.average * 0.93 ? "slower than" : v > STUDY.average * 1.07 ? "faster than" : "close to";
+  const zone = v => v < STUDY.average * 0.93 ? "below" : v > STUDY.average * 1.07 ? "above" : "close to";
   const [zMe, zYou] = [zone(pace.me), zone(pace.you)];
-  const where = zMe === zYou ? `Both of you were ${zMe} the average of ${STUDY.average}.`
-    : `${name ?? "They"} ${name ? "was" : "were"} ${zMe} the average of ${STUDY.average}; you were ${zYou} it.`;
+  const where = zMe === zYou ? `You were both ${zMe} the average`
+    : `${who} ${name ? "was" : "were"} ${zMe} the average; you were ${zYou === "close to" ? "close to it" : zYou}`;
+  const paceNums = el("div", "side-numbers pace-numbers");
+  const pairRow = el("div", "side-nums");
+  for (const [label, tone, value] of [[who, "me", pace.me], ["You", "you", pace.you]]) {
+    const c = el("div", "side-numcol"); c.append(el("b", null, String(Math.round(value))), swatchOf(label, tone)); pairRow.append(c);
+  }
+  paceNums.append(pairRow, el("p", "side-label", "Words a minute"));
   const study = el("div", "side-yours");
-  study.append(el("p", "sentence soft", hold(where)), rangeLine([[who, "me", pace.me], ["You", "you", pace.you]], STUDY, ["Slower", "Faster"]),
+  study.append(el("p", "headline", hold(where)), rangeLine([[who, "me", pace.me], ["You", "you", pace.you]], STUDY),
     el("p", "side-unit-small", hold("The range and average of 2,438 recorded phone calls (Yuan, Liberman and Cieri, 2006).")));
-  tiles.push(tagged(tag("Pace"), lead(paceLead, paceDetail), numbers([[who, "me", pace.me], ["You", "you", pace.you]], null, "Words a minute while you each speak."),
-    el("div", "side-hair"), study));
+  tiles.push(tagged(tag("Pace"), paceWords, paceNums, el("div", "side-hair"), study));
 
   const soft = softening.me + softening.you < 3 ? null : softening.me > softening.you * 1.15 ? `${name ?? "they"} softened a little more`
     : softening.you > softening.me * 1.15 ? "you softened a little more" : "you both softened about as much";
@@ -423,9 +434,9 @@ function sideBySideTiles(raw, name) {
   return tiles;
 }
 
-/// A study's range on one line: a darker stretch with its ends and average under it, each person's dot
-/// with their number above, the labels pushed apart when the dots are close.
-function rangeLine(marks, range, ends) {
+/// A study's range on one line: a darker stretch with its ends and average under it, and each person's
+/// dot (their numbers are in big above it); the labels pushed apart when they are close.
+function rangeLine(marks, range) {
   const values = marks.map(m => m[2]);
   const room = (range.high - range.low) * 0.1;
   const low = Math.min(range.low - room, Math.min(...values) - room), high = Math.max(range.high + room, Math.max(...values) + room);
@@ -433,36 +444,31 @@ function rangeLine(marks, range, ends) {
   const node = el("div", "range");
   node.setAttribute("role", "img");
   node.setAttribute("aria-label", `${marks.map(([label, , v]) => `${label} ${Math.round(v)}`).join(", ")}; study range ${range.low} to ${range.high}, average ${range.average}`);
-  const above = el("div", "range-labels"), line = el("div", "range-line"), under = el("div", "range-labels under");
+  const line = el("div", "range-line"), under = el("div", "range-labels under");
   line.append(el("span", "range-rail"));
   const band = el("span", "range-band");
   band.style.left = `${at(range.low) * 100}%`; band.style.width = `${(at(range.high) - at(range.low)) * 100}%`;
   const tick = el("span", "range-tick"); tick.style.left = `${at(range.average) * 100}%`;
   line.append(band, tick);
-  const tops = marks.map(([label, tone, value]) => {
+  for (const [, tone, value] of marks) {
     const dot = el("span", `side-dot range-dot ${tone}`); dot.style.left = `calc(${at(value) * 100}% - 6px)`; line.append(dot);
-    const text = el("span", "range-label", `${label} ${Math.round(value)}`); above.append(text);
-    return [text, at(value)];
-  });
+  }
   const bottoms = [[`${range.low}`, at(range.low)], [`Average ${range.average}`, at(range.average)], [`${range.high}`, at(range.high)]].map(([t, x]) => {
     const text = el("span", "range-label", t); under.append(text); return [text, x];
   });
-  const endsRow = el("div", "side-ends range-ends"); endsRow.append(el("span", null, ends[0]), el("span", null, ends[1]));
-  node.append(above, line, under, endsRow);
+  node.append(line, under);
   // Centre each label on its point, inside the line and 10 apart, once the width is known.
   const place = () => {
     const width = node.clientWidth;
     if (!width) return;
-    for (const group of [tops, bottoms]) {
-      const spans = group.map(([text, x]) => ({ text, w: text.offsetWidth, left: x * width - text.offsetWidth / 2 })).sort((a, b) => a.left - b.left);
-      for (let i = 1; i < spans.length; i++) {
-        const overlap = spans[i - 1].left + spans[i - 1].w + 10 - spans[i].left;
-        if (overlap > 0) { spans[i - 1].left -= overlap / 2; spans[i].left += overlap / 2; }
-      }
-      for (const span of spans) span.left = Math.min(Math.max(0, span.left), width - span.w);
-      for (let i = 1; i < spans.length; i++) spans[i].left = Math.max(spans[i].left, spans[i - 1].left + spans[i - 1].w + 10);
-      for (const span of spans) span.text.style.left = `${span.left}px`;
+    const spans = bottoms.map(([text, x]) => ({ text, w: text.offsetWidth, left: x * width - text.offsetWidth / 2 })).sort((p, q) => p.left - q.left);
+    for (let i = 1; i < spans.length; i++) {
+      const overlap = spans[i - 1].left + spans[i - 1].w + 10 - spans[i].left;
+      if (overlap > 0) { spans[i - 1].left -= overlap / 2; spans[i].left += overlap / 2; }
     }
+    for (const span of spans) span.left = Math.min(Math.max(0, span.left), width - span.w);
+    for (let i = 1; i < spans.length; i++) spans[i].left = Math.max(spans[i].left, spans[i - 1].left + spans[i - 1].w + 10);
+    for (const span of spans) span.text.style.left = `${span.left}px`;
   };
   if (typeof ResizeObserver === "function") new ResizeObserver(place).observe(node);
   return node;
