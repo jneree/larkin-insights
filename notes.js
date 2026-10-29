@@ -33,6 +33,11 @@ function svg(tag, attributes) {
   for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
   return node;
 }
+function svgChevron() {
+  const icon = svg("svg", { viewBox: "0 0 6 10", width: "6", height: "10", "aria-hidden": "true", class: "chevron" });
+  icon.append(svg("path", { d: "M1 1 L5 5 L1 9" }));
+  return icon;
+}
 function trend(rising) {
   const icon = svg("svg", { viewBox: "0 0 12 8", width: "12", height: "8", "aria-hidden": "true", class: "trend" });
   const y = value => rising ? value : 8 - value;
@@ -62,6 +67,15 @@ function verdict(lead, rest) {
   if (rest) node.append(document.createTextNode(" "), el("span", "soft", hold(rest)));
   return node;
 }
+/// A roomier tile's headline (29 October 2026, as in the app): 18/600 in ink, then the rest in grey, 6 below.
+function headline(lead, rest) {
+  const node = el("div", "lead-block");
+  node.append(el("p", "headline", hold(lead)));
+  if (rest) node.append(el("p", "sentence soft", hold(rest)));
+  return node;
+}
+/// Insights and Side by side tiles: 24 between their parts.
+function roomy(tiles) { for (const tile of tiles) tile.classList.add("roomy"); return tiles; }
 /// "Curious and open." and the rest of the paragraph.
 function leadOf(text) {
   const match = /[.!?…]\s/.exec(text);
@@ -121,7 +135,7 @@ function talkedTile(talked, name) {
   if (!scales.length) return null;
   const clamp = value => Math.min(1, Math.max(0, value));
   const node = tagged(tag(name ? `How ${name} talked` : "How they talked"));
-  if (str(talked.sentence)) node.append(el("p", "verdict lead", talked.sentence));
+  if (str(talked.sentence)) node.append(headline(talked.sentence));
   const list = el("div", "scales");
   const usualSeen = scales.some(s => typeof s.usual === "number");
   for (const scale of scales) {
@@ -167,8 +181,9 @@ function talkedTile(talked, name) {
   return node;
 }
 
-// Side by side (28 October 2026), read by the other person: the sharer by name (in ink) and "you"
-// (in grey), the same tiles and sentence rules as the app's.
+// Side by side (28 October 2026), read by the other person: the sharer by name and "you", the same
+// tiles and sentence rules as the app's. Grey tags, the sharer in periwinkle and the reader in amber
+// (Julien, 29 October 2026; Figma "Oct 29 Conversation final (Claude)").
 function sideBySideTiles(raw, name) {
   if (!raw || typeof raw !== "object") return [];
   const num = v => typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0;
@@ -182,7 +197,7 @@ function sideBySideTiles(raw, name) {
   const cap = text => text.charAt(0).toUpperCase() + text.slice(1);
   const swatchOf = (label, tone) => { const s = el("span", "key-item"); s.append(el("span", `sw ${tone}`), el("span", null, label)); return s; };
   const keyRow = (a, b) => { const k = el("div", "side-key"); k.append(swatchOf(a, "me"), swatchOf(b, "you")); return k; };
-  const lead = (first, rest) => verdict(first, rest);
+  const lead = (first, rest) => headline(first, rest);
   const tiles = [];
   // Left out by the sharer: someone who spoke only briefly (29 October 2026).
   if (str(raw.leftOut)) tiles.push(el("p", "side-note", raw.leftOut));
@@ -205,7 +220,7 @@ function sideBySideTiles(raw, name) {
   const reading = str(raw.readingShared), me = raw.you ?? {}, you = raw.them ?? {};
   if (reading) {
     const [first, rest] = leadOf(cap(reading.replaceAll("{name}", name ?? "they")));
-    tiles.push(tagged(tag("How you came across", "next"), lead(first, rest)));
+    tiles.push(tagged(tag("How you came across"), lead(first, rest)));
   }
   if (str(me.caredAbout) && str(you.caredAbout)) {
     const cols = el("div", "side-cols");
@@ -214,7 +229,7 @@ function sideBySideTiles(raw, name) {
       col.append(swatchOf(label, tone), el("p", "side-phrase", hold(`${value}.`)));
       cols.append(col);
     }
-    tiles.push(tagged(tag("Cared most about", "next"), cols));
+    tiles.push(tagged(tag("Cared most about"), cols));
   }
 
   // How you talked, both on the four scales (29 October 2026): the sharer in ink, the reader in grey.
@@ -262,32 +277,35 @@ function sideBySideTiles(raw, name) {
     const linesTiles = lined.map(scale => {
       const said = (label, tone, lines) => {
         const block = el("div", "side-lines");
-        block.append(swatchOf(label, tone), ...lines.map(line => el("p", "side-line", hold(`“${line}”`))));
+        block.append(swatchOf(label, tone), ...lines.map(line => el("p", "side-line", hold(`“${cap(line)}”`))));
         return block;
       };
-      const parts = [lead(scaleLead(scale)), scaleRow(scale), said(who, "me", scale.meLines), el("div", "side-hair"), said("You", "you", scale.youLines)];
-      if (scale.why) parts.push(el("p", "side-why", hold(cap(scale.why.replaceAll("{name}", name ?? "they")))));
+      const why = scale.why ? cap(scale.why.replaceAll("{name}", name ?? "they")) : null;
+      const parts = [scaleRow(scale), verdict(scaleLead(scale), why), said(who, "me", scale.meLines), el("div", "side-hair"), said("You", "you", scale.youLines)];
       const tile = tagged(tag(AREAS[scale.area], "next"), ...parts);
       tile.hidden = true;
       return tile;
     });
-    let head = tag("How you talked", "next");
+    const data = el("div", "side-data");
+    data.append(list, keyRow(who, "You"));
+    const parts = [lead(talkedLead), data];
+    // The lines behind it as the tile's footer row (Julien, 29 October 2026: button 4).
     if (linesTiles.length) {
-      const row = el("div", "tile-head");
-      const ask = el("button", "ask", "Tell me more");
-      ask.type = "button";
-      ask.setAttribute("aria-expanded", "false");
-      ask.addEventListener("click", () => {
-        const open = ask.getAttribute("aria-expanded") !== "true";
-        ask.setAttribute("aria-expanded", String(open));
-        ask.textContent = open ? "Show less" : "Tell me more";
+      const more = el("button", "side-more");
+      const label = el("span", null, "See the lines behind this");
+      more.type = "button";
+      more.setAttribute("aria-expanded", "false");
+      more.append(label, svgChevron());
+      more.addEventListener("click", () => {
+        const open = more.getAttribute("aria-expanded") !== "true";
+        more.setAttribute("aria-expanded", String(open));
+        label.textContent = open ? "Hide the lines" : "See the lines behind this";
         for (const tile of linesTiles) tile.hidden = !open;
         if (open) linesTiles[0].scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
-      row.append(head, ask);
-      head = row;
+      parts.push(el("div", "side-hair"), more);
     }
-    tiles.push(tagged(head, lead(talkedLead), list, keyRow(who, "You")), ...linesTiles);
+    tiles.push(tagged(tag("How you talked"), ...parts), ...linesTiles);
   }
 
   const share = talk.me / (talk.me + talk.you);
@@ -298,7 +316,9 @@ function sideBySideTiles(raw, name) {
   a.style.flexGrow = String(talk.me); b.style.flexGrow = String(talk.you);
   split.append(a, b); split.setAttribute("aria-hidden", "true");
   const pct = v => `${Math.round(v / (talk.me + talk.you) * 100)}%`;
-  tiles.push(tagged(tag("Talking time", "next"), lead(talkLead), split, keyRow(`${who} · ${pct(talk.me)}`, `You · ${pct(talk.you)}`)));
+  const talkData = el("div", "side-data");
+  talkData.append(split, keyRow(`${who} · ${pct(talk.me)}`, `You · ${pct(talk.you)}`));
+  tiles.push(tagged(tag("Talking time"), lead(talkLead), talkData));
 
   const clock = s => `${Math.floor(Math.round(s) / 60)}:${String(Math.round(s) % 60).padStart(2, "0")}`;
   const top = Math.max(longest.me, longest.you, 1);
@@ -311,7 +331,7 @@ function sideBySideTiles(raw, name) {
     row.append(el("span", "side-who", label), track, el("span", "side-num", clock(value)));
     bars.append(row);
   }
-  tiles.push(tagged(tag("Longest turn", "next"), lead(`${longest.me >= longest.you ? who : "You"} held the floor longest.`), bars));
+  tiles.push(tagged(tag("Longest turn"), lead(`${longest.me >= longest.you ? who : "You"} held the floor longest.`), bars));
 
   if (fillers.length) {
     const mine = fillers.filter(f => f.me >= 3 && f.me > f.you).sort((x, y) => y.me - x.me)[0];
@@ -320,43 +340,44 @@ function sideBySideTiles(raw, name) {
     const fillerLead = mine && yours ? `${owner} is “${mine.word}”; yours is “${yours.word}”.` : mine ? `${owner} is “${mine.word}”.` : yours ? `Yours is “${yours.word}”.` : null;
     const parts = [table("Times said", fillers.map(f => [`“${f.word}”`, f.me, f.you]))];
     if (fillerLead) parts.unshift(lead(fillerLead));
-    tiles.push(tagged(tag("Filler words", "next"), ...parts));
+    tiles.push(tagged(tag("Filler words"), ...parts));
   }
 
-  // Vocabulary (29 October 2026): the comparison only; a score out of 100 comes with a Larkin
-  // report, so the reader is invited to get their own.
+  // The big numbers with their swatches, then what they count.
+  const numbers = (values, label, unit) => {
+    const block = el("div", "side-numbers");
+    if (label) block.append(el("p", "side-label", label));
+    const nums = el("div", "side-nums");
+    for (const [who_, tone, value] of values) {
+      const col = el("div", "side-numcol");
+      col.append(el("b", null, String(Math.round(value))), swatchOf(who_, tone));
+      nums.append(col);
+    }
+    block.append(nums, el("p", "sentence soft", hold(unit)));
+    return block;
+  };
+
+  // Vocabulary (29 October 2026; Figma "Vocabulary · shared page, the friend's own score"): both
+  // numbers, then the reader's own, from this one conversation, and what Larkin would follow.
   const vocab = raw.vocabulary && typeof raw.vocabulary === "object" ? pair(raw.vocabulary) : null;
   if (vocab && vocab.me + vocab.you > 0) {
-    const said = raw.words ? pair(raw.words) : null, different = raw.distinct ? pair(raw.distinct) : null;
+    const said = raw.words ? pair(raw.words) : null;
     const top = Math.max(vocab.me, vocab.you), bottom = Math.min(vocab.me, vocab.you);
     const meLead = vocab.me > vocab.you;
     const saidLess = said ? (meLead ? said.me < said.you : said.you < said.me) : false;
-    const vocabLead = (top - bottom) / top < 0.05 ? "You both drew on a similar range of words."
-      : `${meLead ? who : "You"} ${saidLess ? "said less, with a wider vocabulary" : "had the wider vocabulary"}.`;
-    const count = n => Math.round(n).toLocaleString("en-US");
-    const halves = el("div", "side-halves");
-    for (const [label, tone, value, s, d] of [[who, "me", vocab.me, said?.me, different?.me], ["You", "you", vocab.you, said?.you, different?.you]]) {
-      const half = el("div", "side-half");
-      half.append(el("b", "side-big", String(Math.round(value))), swatchOf(label, tone));
-      if (s && d) half.append(el("p", "side-unit-plain", `${count(d)} different words in\u00a0${count(s)}`));
-      halves.append(half);
-    }
-    const nudge = el("div", "side-nudge");
-    const get = el("a", "side-get", "Get Larkin");
-    get.href = "https://getlarkin.com/?utm_source=shared-notes&utm_medium=link&utm_content=vocabulary";
-    nudge.append(el("p", null, hold("One conversation is only a glimpse. Wear Larkin for a few days to get your real vocabulary score.")), get);
-    tiles.push(tagged(tag("Vocabulary", "next"), lead(vocabLead), halves, el("p", "side-unit", "Different words in every 1,000"), nudge));
+    const vocabLead = (top - bottom) / top < 0.05 ? "You both used a similar range of words."
+      : `${meLead ? who : "You"} ${saidLess ? "said less, with a wider range of words" : "used the wider range of words"}.`;
+    const yours = el("div", "side-yours");
+    yours.append(el("p", "side-label", "Your score"), el("p", "sentence soft", hold(`This conversation gave you ${Math.round(vocab.you)}.`)),
+      el("p", "sentence soft", hold("Larkin follows your score across all your conversations, so you see where you stand.")));
+    tiles.push(tagged(tag("Vocabulary"), lead(vocabLead),
+      numbers([[who, "me", vocab.me], ["You", "you", vocab.you]], "This conversation", "Different words in every 1,000"),
+      el("div", "side-hair"), yours));
   }
 
   const high = Math.max(pace.me, pace.you), low = Math.min(pace.me, pace.you);
   const paceLead = !high || (high - low) / high <= 0.08 ? "You matched each other’s pace." : `${pace.me > pace.you ? who : "You"} spoke faster.`;
-  const nums = el("div", "side-nums");
-  for (const [label, tone, value] of [[who, "me", pace.me], ["You", "you", pace.you]]) {
-    const col = el("div", "side-numcol");
-    col.append(el("b", null, String(Math.round(value))), swatchOf(label, tone));
-    nums.append(col);
-  }
-  tiles.push(tagged(tag("Pace", "next"), lead(paceLead), nums, el("p", "side-unit", "Words a minute")));
+  tiles.push(tagged(tag("Pace"), lead(paceLead), numbers([[who, "me", pace.me], ["You", "you", pace.you]], null, "Words a minute while you each speak.")));
 
   const soft = softening.me + softening.you < 3 ? null : softening.me > softening.you * 1.15 ? `${name ?? "they"} softened a little more`
     : softening.you > softening.me * 1.15 ? "you softened a little more" : "you both softened about as much";
@@ -365,7 +386,7 @@ function sideBySideTiles(raw, name) {
     const rows = [];
     if (shared) rows.push([`“${shared.word}”`, shared.me, shared.you]);
     if (soft) rows.push(["“maybe”, “I\u00a0think”", softening.me, softening.you]);
-    tiles.push(tagged(tag("Same words", "next"), lead(wordsLead), table(null, rows)));
+    tiles.push(tagged(tag("Same words"), lead(wordsLead), table(null, rows)));
   }
 
   const fast = replies.me < 0.5 && replies.you < 0.5;
@@ -379,8 +400,10 @@ function sideBySideTiles(raw, name) {
   track.setAttribute("aria-hidden", "true");
   const ends = el("div", "side-ends"); ends.append(el("span", null, "Instant"), el("span", null, "2 seconds"));
   const secs = v => `${v.toFixed(2)} s`;
-  tiles.push(tagged(tag("Replies", "next"), fast ? lead("No dead air.", replies.quick ? `You both answered in under half a second: ${replies.quick} replies came without a pause.` : null)
-    : lead(`${replies.me <= replies.you ? who : "You"} answered faster.`), track, ends, keyRow(`${who} · ${secs(replies.me)}`, `You · ${secs(replies.you)}`)));
+  const replyData = el("div", "side-data");
+  replyData.append(track, ends, keyRow(`${who} · ${secs(replies.me)}`, `You · ${secs(replies.you)}`));
+  tiles.push(tagged(tag("Replies"), fast ? lead("No dead air.", replies.quick ? `You both answered in under half a second: ${replies.quick} replies came without a pause.` : null)
+    : lead(`${replies.me <= replies.you ? who : "You"} answered faster.`), replyData));
   return tiles;
 }
 
@@ -663,14 +686,16 @@ function render(notes) {
   const cameAcross = str(notes.cameAcross);
   if (cameAcross) {
     const [lead, rest] = leadOf(cameAcross);
-    insights.push(tagged(tag(name ? `How ${name} came across` : "How they came across"), verdict(lead, rest)));
+    insights.push(tagged(tag(name ? `How ${name} came across` : "How they came across"), headline(lead, rest)));
   }
   const talked = talkedTile(notes.talked, name);
   if (talked) insights.push(talked);
   const areas = Array.isArray(notes.insights) ? notes.insights : [];
   const worked = areas.flatMap(area => points(area?.worked)), slipped = areas.flatMap(area => points(area?.slipped));
-  if (worked.length) insights.push(tagged(tag("Worked", "worked"), ...worked.map(point)));
-  if (slipped.length) insights.push(tagged(tag("To work on", "to-work-on"), ...slipped.map(point)));
+  // The points with a hairline between them (29 October 2026).
+  const pointList = items => { const list = el("div", "points"); list.append(...items.map(point)); return list; };
+  if (worked.length) insights.push(tagged(tag("Worked", "worked"), pointList(worked)));
+  if (slipped.length) insights.push(tagged(tag("To work on", "to-work-on"), pointList(slipped)));
   const tryNext = texts(notes.tryNext);
   if (tryNext.length) insights.push(tagged(tag("What to do next", "next"), bullets(tryNext)));
   // Larkin's take left the app on 28 October 2026 and is no longer shown, even from older links.
@@ -704,14 +729,14 @@ function render(notes) {
   let side = sideBySideTiles(notes.sideBySide, name);
   // More than two people (29 October 2026): the tab says so, as in the app.
   if (!side.length && Number.isInteger(notes.sideBySidePeople) && notes.sideBySidePeople >= 3) {
-    side = [tagged(tag("Side by side", "next"), el("p", "verdict lead",
+    side = [tagged(tag("Side by side"), el("p", "verdict lead",
       hold(`This conversation had ${notes.sideBySidePeople} people, so Side by side can’t compare ${name ?? "them"} and you on your own.`)))];
   }
   // Insights, Side by side and the notes under pills, one at a time, as in the app. The link opens on
   // Side by side when it was shared (the part the other person came for), otherwise on the notes.
   const tabsList = [];
-  if (insights.length) tabsList.push(["insights", pill("Insights", null), panel(insights)]);
-  if (side.length) tabsList.push(["side-by-side", pill("Side by side", null), panel(side)]);
+  if (insights.length) tabsList.push(["insights", pill("Insights", null), panel(roomy(insights))]);
+  if (side.length) tabsList.push(["side-by-side", pill("Side by side", null), panel(roomy(side))]);
   tabsList.push(["notes", pill(template, TEMPLATE_ICONS[template.toLowerCase()] ?? "notes"), notesPanel]);
   const nodes = [head];
   if (tabsList.length > 1) {

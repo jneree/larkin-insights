@@ -34,7 +34,7 @@
   --tag-worked: #D8F3D0; --tag-worked-ink: #2B6E1F;
   --tag-red: #FFE5E5; --tag-red-ink: #B3261E;
   --rail: rgba(21, 21, 21, 0.18);
-  --dot-fill: #151515; --dot-record-line: #151515;
+  --dot-fill: #D2ED28; --dot-record-line: #151515;
   --lime: #D2ED28;
   --on-lime: #151515;
   --on-dark: #FFFFFF;
@@ -143,6 +143,13 @@ h1 { font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.01
 }
 .tile > * { justify-self: stretch; }
 .tile > .tag { justify-self: start; }
+/* Insights and Side by side (Julien, 29 October 2026): roomier tiles, 24 between parts, headlines at 18/600. */
+.tile.roomy { gap: 24px; padding: 20px 20px 22px; }
+.tile[hidden] { display: none; }
+.lead-block { display: grid; gap: 6px; }
+.headline { font-size: 18px; line-height: 23px; font-weight: 600; letter-spacing: -0.015em; color: var(--ink); overflow-wrap: anywhere; }
+.points { display: grid; gap: 16px; }
+.points > * + * { border-top: 1px solid var(--hairline); padding-top: 16px; }
 .tag {
   display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 5px 12px; border-radius: 14px;
   font-size: 14px; line-height: 18px; font-weight: 500; letter-spacing: -0.01em; overflow-wrap: anywhere;
@@ -213,6 +220,8 @@ h1 { font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.01
   right: calc(100% - max(calc(var(--u) * (100% - var(--ring)) + var(--ring) / 2), calc(var(--p) * (100% - var(--dot)) + var(--dot) / 2)));
 }
 .dot { background: var(--dot-fill); }
+/* This conversation's dot in lime, ringed by the tile on light, as in the app. */
+.scale .track .dot:not(.highest-dot) { box-shadow: 0 0 0 2px var(--tile); }
 .dot.highest-dot { background: var(--lime); box-shadow: inset 0 0 0 2px var(--dot-record-line); }
 .ring { box-sizing: border-box; border: 2px solid var(--ink-muted); background: var(--tile); }
 .key { display: flex; flex-wrap: wrap; gap: 16px; }
@@ -361,19 +370,22 @@ body.motion .report-line .word { opacity: 0; transition: opacity 0.2s ease-out; 
 body.motion .report-line .word.on { opacity: 1; }
 @keyframes report-pulse { 50% { transform: scale(1.7); } }
 
-/* Side by side (28 October 2026): the sharer in ink, the reader in grey; one comparison per tile. */
-:root { --them: #A3A39D; --hairline: rgba(21, 21, 21, 0.08); }
-@media (prefers-color-scheme: dark) { :root { --them: #6B6B66; --hairline: rgba(255, 255, 255, 0.12); } }
+/* Side by side (28 October 2026): one comparison per tile, the sharer in periwinkle and the reader in
+   amber, the Try next orange on light (Julien, 29 October 2026). */
+:root { --me: #6C78E6; --them: #F6A000; --hairline: rgba(21, 21, 21, 0.08); }
+@media (prefers-color-scheme: dark) { :root { --me: #8EA9F9; --them: #F2B56B; --hairline: rgba(255, 255, 255, 0.12); } }
 .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
-.sw.me, .seg.me, .side-bar.me, .side-dot.me { background: var(--ink); }
+.sw.me, .seg.me, .side-bar.me, .side-dot.me { background: var(--me); }
 .sw.you, .seg.you, .side-bar.you, .side-dot.you { background: var(--them); }
-.side-key { display: flex; justify-content: space-between; gap: 8px; margin-top: -8px; }
+.side-key { display: flex; flex-wrap: wrap; gap: 14px; }
+.side-data { display: grid; gap: 14px; }
+.side-numbers, .side-yours { display: grid; gap: 12px; }
 .side-key .key-item, .side-table .key-item, .side-col .key-item, .side-numcol .key-item {
   display: inline-flex; align-items: center; gap: 6px; font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); }
 .split { display: flex; gap: 4px; height: 12px; }
 .seg { height: 12px; border-radius: 6px; min-width: 6px; }
 .side-section { display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid var(--hairline); }
-.side-label { font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); }
+.side-label { font-size: 13px; line-height: 18px; font-weight: 500; color: var(--ink-muted); }
 .side-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .side-col { display: grid; gap: 6px; align-content: start; }
 .side-phrase { font-size: 16px; line-height: 21px; font-weight: 500; overflow-wrap: anywhere; }
@@ -385,8 +397,7 @@ body.motion .report-line .word.on { opacity: 1; }
 .side-num { font-size: 13px; line-height: 18px; font-weight: 500; }
 .side-nums { display: flex; gap: 40px; }
 .side-numcol { display: grid; gap: 4px; }
-.side-numcol b { font-size: 34px; line-height: 38px; font-weight: 600; letter-spacing: -0.02em; }
-.side-unit { font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); margin-top: -8px; }
+.side-numcol b { font-size: 44px; line-height: 48px; font-weight: 600; letter-spacing: -0.02em; }
 .side-table { display: grid; }
 .side-row { display: grid; grid-template-columns: 1fr 76px 76px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--hairline);
   font-size: 16px; line-height: 21px; font-weight: 480; }
@@ -398,26 +409,17 @@ body.motion .report-line .word.on { opacity: 1; }
 .side-rail { position: absolute; left: 0; right: 0; top: 7px; height: 2px; border-radius: 1px; background: var(--rail); }
 .side-dot { position: absolute; top: 0; width: 16px; height: 16px; border-radius: 50%; left: calc(var(--p) * (100% - 16px)); }
 .side-dot.you, .side-dot.me { box-shadow: 0 0 0 2px var(--tile); }
-.side-ends { display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); margin-top: -10px; }
-.side-halves { display: grid; grid-template-columns: 1fr 1fr; }
-.side-half { display: grid; gap: 6px; align-content: start; }
-.side-half + .side-half { border-left: 1px solid var(--hairline); padding-left: 16px; }
-.side-big { font-size: 34px; line-height: 38px; font-weight: 600; letter-spacing: -0.02em; }
-.side-unit-plain { font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); }
-.side-nudge { display: grid; gap: 10px; justify-items: start; padding-top: 14px; border-top: 1px solid var(--hairline); }
-.side-nudge p { font-size: 16px; line-height: 21px; font-weight: 480; color: var(--ink-muted); }
-.side-get { display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 999px; background: var(--control);
-  box-shadow: inset 0 0 0 1px var(--control-line); font-size: 14px; line-height: 18px; font-weight: 600; text-decoration: none; color: var(--ink); }
+.side-ends { display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); margin-top: -8px; }
 
-/* Side by side: Tell me more beside How you talked, each scale's lines, and who was left out (29 October 2026). */
-.tile-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; justify-self: stretch; }
-.ask {
-  flex: none; height: 28px; padding: 0 12px; border: 1px solid var(--control-line); border-radius: 14px 14px 4px 14px;
-  background: var(--control); color: var(--ink); font: inherit; font-size: 14px; line-height: 18px; font-weight: 600; cursor: pointer;
-}
+/* Side by side: each scale's lines behind How you talked, and who was left out (29 October 2026). */
 .side-lines { display: grid; gap: 8px; }
 .side-line { font-size: 16px; line-height: 21px; font-weight: 480; overflow-wrap: anywhere; }
 .side-hair { height: 1px; background: var(--line); }
-.side-why { font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); }
+/* How you talked's footer row: the lines behind it open under the tile. */
+.side-more {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; margin: -12px 0; padding: 0;
+  border: 0; background: none; color: var(--ink); font: inherit; font-size: 16px; line-height: 21px; font-weight: 500; text-align: left; cursor: pointer;
+}
+.chevron { flex: none; fill: none; stroke: var(--ink-muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .side-note { font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); padding: 0 6px; margin-bottom: -4px; }
 
