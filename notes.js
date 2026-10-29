@@ -853,13 +853,22 @@ function render(notes) {
     nodes.push(notesPanel);
   }
 
-  // The hook: what Larkin would give the reader, about themselves, privately.
-  const hook = el("aside", "hook");
+  // The hook (Julien, 29 October 2026; Figma "Shared page · How did you come across? · B"): the
+  // questions Larkin would answer for the reader after every conversation, for them alone.
+  const hook = el("aside", "tile roomy hook");
   const cta = el("a", "pill", "Get Larkin");
   cta.href = "https://getlarkin.com/?utm_source=shared-notes&utm_medium=link&utm_content=hook";
-  hook.append(el("h2", null, "How did you come across?"),
-    el("p", null, "Larkin writes notes like these from every conversation, and gives you a private read on how you came across: what worked, what to work on and what to do next."),
-    cta);
+  const hookWords = el("div", "lead-block");
+  hookWords.append(el("h2", "hook-title", hold("Know how you come across, everywhere you talk.")),
+    el("p", "sentence soft", hold("Larkin answers questions like these after every conversation, for you alone.")));
+  const questions = el("ul", "hook-questions");
+  for (const [where, question] of [["At work", "Did your point land in the meeting?"], ["At home", "Were you listening, or waiting to talk?"],
+    ["With friends", "Who did most of the talking?"]]) {
+    const item = el("li");
+    item.append(el("span", "side-label", where), el("span", "hook-question", hold(question)));
+    questions.append(item);
+  }
+  hook.append(tag("Your turn", "next"), hookWords, questions, cta);
   nodes.push(hook);
 
   document.title = `${notes.title} · Larkin`;

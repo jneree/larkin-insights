@@ -228,11 +228,15 @@ h1 { font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.01
 .key-item { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); }
 .key-item .dot, .key-item .ring { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
 
-/* The hook: a white tile with the page's one lime button. */
-.hook { margin-top: 20px; padding: 22px 20px 20px; border-radius: 28px; background: var(--tile); display: grid; gap: 10px; justify-items: start; }
-.hook h2 { font-size: 20px; line-height: 26px; font-weight: 700; letter-spacing: -0.01em; }
-.hook p { font-size: 15px; line-height: 20px; color: var(--ink-muted); max-width: 34em; }
-.hook .pill { margin-top: 8px; }
+/* The hook (29 October 2026): a tile like the others, the lime "Your turn" tag, three questions under
+   hairlines, then the page's one lime button. */
+.hook { margin-top: 20px; }
+.hook .pill { justify-self: start; }
+.hook-title { font-size: 22px; line-height: 27px; font-weight: 600; letter-spacing: -0.015em; }
+.hook-questions { display: grid; gap: 14px; }
+.hook-questions li { display: grid; gap: 2px; }
+.hook-questions li + li { border-top: 1px solid var(--hairline); padding-top: 14px; }
+.hook-question { font-size: 16px; line-height: 21px; font-weight: 500; color: var(--ink); }
 
 /* Discover Larkin: a dark section. Lime text only here. */
 .discover { background: var(--discover); color: var(--on-dark); padding: 56px 0 64px; }
@@ -268,7 +272,8 @@ body.report {
 body.report .column { max-width: calc(640px + 48px); padding: 0 max(24px, env(safe-area-inset-left)) 0 max(24px, env(safe-area-inset-right)); }
 body.report main.column { display: block; }
 body.report .bar-inner { padding: 0 max(24px, env(safe-area-inset-right)) 0 max(24px, env(safe-area-inset-left)); }
-body.report .hook { padding: 28px; background: var(--lime); color: var(--on-lime); }
+body.report .hook { display: grid; gap: 10px; justify-items: start; border-radius: 28px; padding: 28px; background: var(--lime); color: var(--on-lime); }
+body.report .hook h2 { font-weight: 700; }
 body.report .hook h2 { font-size: 24px; line-height: 1.15; letter-spacing: -0.02em; }
 body.report .hook p { color: var(--on-lime); font-size: 17px; line-height: 1.53; }
 body.report .hook .pill { margin-top: 10px; }
