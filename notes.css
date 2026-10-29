@@ -408,3 +408,16 @@ body.motion .report-line .word.on { opacity: 1; }
 .side-nudge p { font-size: 16px; line-height: 21px; font-weight: 480; color: var(--ink-muted); }
 .side-get { display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 999px; background: var(--control);
   box-shadow: inset 0 0 0 1px var(--control-line); font-size: 14px; line-height: 18px; font-weight: 600; text-decoration: none; color: var(--ink); }
+
+/* Side by side: Tell me more beside How you talked, each scale's lines, and who was left out (29 October 2026). */
+.tile-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; justify-self: stretch; }
+.ask {
+  flex: none; height: 28px; padding: 0 12px; border: 1px solid var(--control-line); border-radius: 14px 14px 4px 14px;
+  background: var(--control); color: var(--ink); font: inherit; font-size: 14px; line-height: 18px; font-weight: 600; cursor: pointer;
+}
+.side-lines { display: grid; gap: 8px; }
+.side-line { font-size: 16px; line-height: 21px; font-weight: 480; overflow-wrap: anywhere; }
+.side-hair { height: 1px; background: var(--line); }
+.side-why { font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); }
+.side-note { font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); padding: 0 6px; margin-bottom: -4px; }
+

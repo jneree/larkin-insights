@@ -184,6 +184,8 @@ function sideBySideTiles(raw, name) {
   const keyRow = (a, b) => { const k = el("div", "side-key"); k.append(swatchOf(a, "me"), swatchOf(b, "you")); return k; };
   const lead = (first, rest) => verdict(first, rest);
   const tiles = [];
+  // Left out by the sharer: someone who spoke only briefly (29 October 2026).
+  if (str(raw.leftOut)) tiles.push(el("p", "side-note", raw.leftOut));
   const table = (heading, rows) => {
     const t = el("div", "side-table");
     const head = el("div", "side-row side-head");
@@ -221,31 +223,71 @@ function sideBySideTiles(raw, name) {
     clarity: ["Thinks out loud", "Gets to the point", "got to the point", "thought out loud"],
     framing: ["Facts first", "Story first", "led with stories", "led with facts"] };
   const scales = (Array.isArray(raw.scales) ? raw.scales : []).filter(x => ENDS[x?.area]).slice(0, 4)
-    .map(x => ({ area: x.area, me: Math.min(100, num(x.you)), you: Math.min(100, num(x.them)) }));
+    .map(x => ({ area: x.area, me: Math.min(100, num(x.you)), you: Math.min(100, num(x.them)),
+      meLines: texts(x.youLines).slice(0, 2), youLines: texts(x.themLines).slice(0, 2), why: str(x.why) }));
+  const scaleRow = scale => {
+    const row = el("div", "scale");
+    const ends = el("div", "ends");
+    ends.append(el("span", "end", ENDS[scale.area][0]), el("span", "end", ENDS[scale.area][1]));
+    const track = el("div", "side-track");
+    track.append(el("span", "side-rail"));
+    for (const [tone, value] of [["you", scale.you], ["me", scale.me]]) {
+      const dot = el("span", `side-dot ${tone}`);
+      dot.style.setProperty("--p", String(value / 100));
+      track.append(dot);
+    }
+    row.setAttribute("role", "img");
+    row.setAttribute("aria-label", `${ENDS[scale.area][0]} to ${ENDS[scale.area][1]}: ${who} ${Math.round(scale.me)}, you ${Math.round(scale.you)}, out of 100`);
+    ends.setAttribute("aria-hidden", "true"); track.setAttribute("aria-hidden", "true");
+    row.append(ends, track);
+    return row;
+  };
+  // One scale's sentence, as the app writes it, to the reader.
+  const scaleLead = scale => {
+    const [, , right, left] = ENDS[scale.area];
+    if (Math.abs(scale.me - scale.you) < 15) return `You both ${(scale.me + scale.you >= 100 ? right : left).replace(" them", " things")}.`;
+    return scale.me > scale.you ? `${who} ${right}; you ${left}.` : `${who} ${left}; you ${right}.`;
+  };
+  const AREAS = { assertiveness: "Assertiveness", listening: "Listening", clarity: "Clarity", framing: "Framing" };
   if (scales.length) {
     const widest = scales.reduce((a, b) => Math.abs(b.me - b.you) > Math.abs(a.me - a.you) ? b : a);
     const [, , right, left] = ENDS[widest.area];
     const talkedLead = Math.abs(widest.me - widest.you) < 15 ? "You talked in much the same way."
       : widest.me > widest.you ? `${who} ${right}; you ${left}.` : `${who} ${left}; you ${right}.`;
     const list = el("div", "scales");
-    for (const scale of scales) {
-      const row = el("div", "scale");
-      const ends = el("div", "ends");
-      ends.append(el("span", "end", ENDS[scale.area][0]), el("span", "end", ENDS[scale.area][1]));
-      const track = el("div", "side-track");
-      track.append(el("span", "side-rail"));
-      for (const [tone, value] of [["you", scale.you], ["me", scale.me]]) {
-        const dot = el("span", `side-dot ${tone}`);
-        dot.style.setProperty("--p", String(value / 100));
-        track.append(dot);
-      }
-      row.setAttribute("role", "img");
-      row.setAttribute("aria-label", `${ENDS[scale.area][0]} to ${ENDS[scale.area][1]}: ${who} ${Math.round(scale.me)}, you ${Math.round(scale.you)}, out of 100`);
-      ends.setAttribute("aria-hidden", "true"); track.setAttribute("aria-hidden", "true");
-      row.append(ends, track);
-      list.append(row);
+    for (const scale of scales) list.append(scaleRow(scale));
+    // Tell me more (29 October 2026): each scale with both people's exact lines and why, opened
+    // under the tile on the page itself.
+    const lined = scales.filter(scale => scale.meLines.length && scale.youLines.length);
+    const linesTiles = lined.map(scale => {
+      const said = (label, tone, lines) => {
+        const block = el("div", "side-lines");
+        block.append(swatchOf(label, tone), ...lines.map(line => el("p", "side-line", hold(`“${line}”`))));
+        return block;
+      };
+      const parts = [lead(scaleLead(scale)), scaleRow(scale), said(who, "me", scale.meLines), el("div", "side-hair"), said("You", "you", scale.youLines)];
+      if (scale.why) parts.push(el("p", "side-why", hold(cap(scale.why.replaceAll("{name}", name ?? "they")))));
+      const tile = tagged(tag(AREAS[scale.area], "next"), ...parts);
+      tile.hidden = true;
+      return tile;
+    });
+    let head = tag("How you talked", "next");
+    if (linesTiles.length) {
+      const row = el("div", "tile-head");
+      const ask = el("button", "ask", "Tell me more");
+      ask.type = "button";
+      ask.setAttribute("aria-expanded", "false");
+      ask.addEventListener("click", () => {
+        const open = ask.getAttribute("aria-expanded") !== "true";
+        ask.setAttribute("aria-expanded", String(open));
+        ask.textContent = open ? "Show less" : "Tell me more";
+        for (const tile of linesTiles) tile.hidden = !open;
+        if (open) linesTiles[0].scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+      row.append(head, ask);
+      head = row;
     }
-    tiles.push(tagged(tag("How you talked", "next"), lead(talkedLead), list, keyRow(who, "You")));
+    tiles.push(tagged(head, lead(talkedLead), list, keyRow(who, "You")), ...linesTiles);
   }
 
   const share = talk.me / (talk.me + talk.you);
@@ -659,7 +701,12 @@ function render(notes) {
   // notes: they are what the people in the conversation came for, and always shared.
   const template = str(notes.template) ?? (Array.isArray(notes.sections) && notes.sections.length ? "Notes" : "Short notes");
   const notesPanel = panel(notesTiles.length ? notesTiles : [el("p", "empty", "No notes for this conversation.")]);
-  const side = sideBySideTiles(notes.sideBySide, name);
+  let side = sideBySideTiles(notes.sideBySide, name);
+  // More than two people (29 October 2026): the tab says so, as in the app.
+  if (!side.length && Number.isInteger(notes.sideBySidePeople) && notes.sideBySidePeople >= 3) {
+    side = [tagged(tag("Side by side", "next"), el("p", "verdict lead",
+      hold(`This conversation had ${notes.sideBySidePeople} people, so Side by side can’t compare ${name ?? "them"} and you on your own.`)))];
+  }
   // Insights, Side by side and the notes under pills, one at a time, as in the app. The link opens on
   // Side by side when it was shared (the part the other person came for), otherwise on the notes.
   const tabsList = [];
@@ -690,7 +737,8 @@ function render(notes) {
       const next = tabsList[Math.min(tabsList.length - 1, Math.max(0, at + (event.key === "ArrowLeft" ? -1 : 1)))][1];
       select(next); next.focus();
     });
-    select((side.length ? tabsList.find(([id]) => id === "side-by-side") : tabsList.find(([id]) => id === "notes"))[1]);
+    // Opens on the notes when Side by side only says there were more than two people.
+    select((side.length && notes.sideBySide ? tabsList.find(([id]) => id === "side-by-side") : tabsList.find(([id]) => id === "notes"))[1]);
     nodes.push(tabs, ...tabsList.map(([, , body]) => body));
   } else {
     nodes.push(notesPanel);
