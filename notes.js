@@ -857,7 +857,7 @@ function render(notes) {
   // the website's Apple Watch card, then the questions Larkin would answer for the reader.
   const hook = el("aside", "tile hook");
   const watch = el("img", "hook-watch");
-  watch.src = "/images/watch-larkin.png"; watch.alt = ""; watch.width = 120; watch.height = 189;
+  watch.src = "/images/watch-larkin.png"; watch.alt = ""; watch.width = 150; watch.height = 236;
   const cta = el("a", "pill hook-cta", "Get Larkin");
   cta.href = "https://getlarkin.com/?utm_source=shared-notes&utm_medium=link&utm_content=hook";
   const questions = el("ul", "hook-questions");
@@ -867,8 +867,11 @@ function render(notes) {
     item.append(el("span", "side-label", where), el("span", "hook-question", hold(question)));
     questions.append(item);
   }
-  hook.append(watch, el("p", "caps hook-eyebrow", "Your turn"), el("h2", "hook-title", hold("Know how you come across, everywhere you talk.")),
+  // The words in their own column, so a wide page puts them beside the watch, as on getlarkin.com.
+  const copy = el("div", "hook-copy");
+  copy.append(el("p", "caps hook-eyebrow", "Your turn"), el("h2", "hook-title", hold("Know how you come across, everywhere you talk.")),
     el("p", "sentence soft", hold("Larkin answers questions like these after every conversation, for you alone.")), questions, cta);
+  hook.append(watch, copy);
   nodes.push(hook);
 
   document.title = `${notes.title} · Larkin`;

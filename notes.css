@@ -231,7 +231,8 @@ h1 { font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.01
 /* The hook (29 October 2026): the website's Apple Watch card, the questions under hairlines, then the
    page's one button, in ink as on the site (white on dark). */
 .hook { margin-top: 20px; padding: 24px 20px; gap: 14px; }
-.hook-watch { display: block; width: 120px; height: auto; margin: 0 0 6px -6px; justify-self: start; }
+.hook-copy { display: grid; gap: 14px; }
+.hook-watch { display: block; width: 120px; height: auto; margin: 0 0 6px -6px; justify-self: start; filter: drop-shadow(0 18px 22px rgba(21, 21, 21, 0.24)); }
 .hook-eyebrow { letter-spacing: 1.2px; font-size: 13px; line-height: 18px; }
 .hook-title { font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.015em; }
 .hook-questions { display: grid; gap: 14px; margin-top: 6px; }
@@ -239,6 +240,12 @@ h1 { font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.01
 .hook-questions li + li { border-top: 1px solid var(--hairline); padding-top: 14px; }
 .hook-question { font-size: 16px; line-height: 21px; font-weight: 500; color: var(--ink); }
 .hook .hook-cta { width: 100%; margin-top: 10px; background: var(--ink); color: var(--tile); }
+/* Wide pages: the watch on the left and the words beside it, the button its own width, as on the site. */
+@media (min-width: 600px) {
+  .hook { grid-template-columns: auto 1fr; align-items: center; column-gap: 40px; padding: 36px 40px; }
+  .hook-watch { width: 150px; margin: 0; align-self: center; }
+  .hook .hook-cta { width: auto; justify-self: start; }
+}
 
 /* Discover Larkin: a dark section. Lime text only here. */
 .discover { background: var(--discover); color: var(--on-dark); padding: 56px 0 64px; }
