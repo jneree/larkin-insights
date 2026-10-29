@@ -853,14 +853,13 @@ function render(notes) {
     nodes.push(notesPanel);
   }
 
-  // The hook (Julien, 29 October 2026; Figma "Shared page · How did you come across? · B"): the
-  // questions Larkin would answer for the reader after every conversation, for them alone.
-  const hook = el("aside", "tile roomy hook");
-  const cta = el("a", "pill", "Get Larkin");
+  // The hook (Julien, 29 October 2026; Figma "Shared page · Your turn as the site's Watch card · A"):
+  // the website's Apple Watch card, then the questions Larkin would answer for the reader.
+  const hook = el("aside", "tile hook");
+  const watch = el("img", "hook-watch");
+  watch.src = "/images/watch-larkin.png"; watch.alt = ""; watch.width = 120; watch.height = 189;
+  const cta = el("a", "pill hook-cta", "Get Larkin");
   cta.href = "https://getlarkin.com/?utm_source=shared-notes&utm_medium=link&utm_content=hook";
-  const hookWords = el("div", "lead-block");
-  hookWords.append(el("h2", "hook-title", hold("Know how you come across, everywhere you talk.")),
-    el("p", "sentence soft", hold("Larkin answers questions like these after every conversation, for you alone.")));
   const questions = el("ul", "hook-questions");
   for (const [where, question] of [["At work", "Did your point land in the meeting?"], ["At home", "Were you listening, or waiting to talk?"],
     ["With friends", "Who did most of the talking?"]]) {
@@ -868,7 +867,8 @@ function render(notes) {
     item.append(el("span", "side-label", where), el("span", "hook-question", hold(question)));
     questions.append(item);
   }
-  hook.append(tag("Your turn", "next"), hookWords, questions, cta);
+  hook.append(watch, el("p", "caps hook-eyebrow", "Your turn"), el("h2", "hook-title", hold("Know how you come across, everywhere you talk.")),
+    el("p", "sentence soft", hold("Larkin answers questions like these after every conversation, for you alone.")), questions, cta);
   nodes.push(hook);
 
   document.title = `${notes.title} · Larkin`;
