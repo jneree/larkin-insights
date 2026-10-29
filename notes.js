@@ -344,7 +344,7 @@ function sideBySideTiles(raw, name) {
     const nudge = el("div", "side-nudge");
     const get = el("a", "side-get", "Get Larkin");
     get.href = "https://getlarkin.com/?utm_source=shared-notes&utm_medium=link&utm_content=vocabulary";
-    nudge.append(el("p", null, hold("Want your own vocabulary score? Use Larkin for a few days to get yours.")), get);
+    nudge.append(el("p", null, hold("One conversation is only a glimpse. Wear Larkin for a few days to get your real vocabulary score.")), get);
     tiles.push(tagged(tag("Vocabulary", "next"), lead(vocabLead), halves, el("p", "side-unit", "Different words in every 1,000"), nudge));
   }
 
