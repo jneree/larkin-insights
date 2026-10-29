@@ -519,6 +519,11 @@ function block(...children) {
   node.append(...children);
   return node;
 }
+/// "Oct 27, 2026 · 3:35–4:05 PM · 30 min" → "Oct 27, 2026 · 3:35 PM · 30 min": links written before
+/// 29 October 2026 carry the range; the start keeps its own AM or PM ("11:30 AM–12:15 PM").
+function startOnly(when) {
+  return when ? when.replace(/(\d{1,2}:\d{2})(\s?[AP]M)?\s*[–-]\s*\d{1,2}:\d{2}\s?([AP]M)/, (_, start, own, end) => `${start}${own ?? ` ${end}`}`) : null;
+}
 function str(value) { return typeof value === "string" && value.trim() ? value : null; }
 function spelled(number) { return number <= 12 ? SPELLED[number] : String(number); }
 function capitalised(text) { return text.charAt(0).toUpperCase() + text.slice(1); }
@@ -758,11 +763,11 @@ function render(notes) {
   // The header, as on the app's conversation page (28 October 2026): the title, the date under it,
   // then who was talking and why.
   const head = el("header", "head");
-  const by = name ? `Shared by ${name}` : "Shared from Larkin";
-  const meta = el("p", "meta");
-  if (str(notes.when)) meta.append(document.createTextNode(`${notes.when} · `));
-  meta.append(el("span", "nowrap", by));
-  head.append(el("h1", null, notes.title), meta);
+  // The date and start time only, as in the app (Julien, 29 October 2026: no "Shared by").
+  const when = startOnly(str(notes.when));
+  const meta = el("p", "meta", when ?? "");
+  head.append(el("h1", null, notes.title));
+  if (when) head.append(meta);
   if (str(notes.summary)) head.append(el("p", "summary", notes.summary));
 
   // Insights: the sharer's own coaching is written to them ("you"), so its tags say whose it is.
@@ -810,7 +815,7 @@ function render(notes) {
   // notes: they are what the people in the conversation came for, and always shared.
   const template = str(notes.template) ?? (Array.isArray(notes.sections) && notes.sections.length ? "Notes" : "Short notes");
   const notesPanel = panel(notesTiles.length ? notesTiles : [el("p", "empty", "No notes for this conversation.")]);
-  let side = sideBySideTiles(notes.sideBySide, name, [notes.title, str(notes.when)].filter(Boolean).join(" · "));
+  let side = sideBySideTiles(notes.sideBySide, name, [notes.title, when].filter(Boolean).join(" · "));
   // More than two people (29 October 2026): the tab says so, as in the app.
   if (!side.length && Number.isInteger(notes.sideBySidePeople) && notes.sideBySidePeople >= 3) {
     side = [tagged(tag("Side by side"), el("p", "verdict lead",
