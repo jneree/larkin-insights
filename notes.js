@@ -853,24 +853,36 @@ function render(notes) {
     nodes.push(notesPanel);
   }
 
-  // The hook (Julien, 29 October 2026; Figma "Shared page · Your turn as the site's Watch card · A"):
-  // the website's Apple Watch card, then the questions Larkin would answer for the reader.
+  // The hook (Julien, 29 October 2026): the website's Apple Watch card, its screen playing the
+  // site's recording loop while in view (still when the reader asks for less motion).
   const hook = el("aside", "tile hook");
-  const watch = el("img", "hook-watch");
-  watch.src = "/images/watch-larkin.png"; watch.alt = ""; watch.width = 150; watch.height = 236;
+  const watch = el("div", "hook-watch");
+  watch.setAttribute("aria-hidden", "true");
+  const screen = el("div", "watch-screen");
+  const still = el("img", "watch-still");
+  still.src = "/media/watch-record-still-520.webp"; still.alt = ""; still.width = 520; still.height = 620;
+  const video = el("video", "watch-video");
+  video.muted = true; video.loop = true; video.playsInline = true; video.preload = "none";
+  video.setAttribute("muted", ""); video.setAttribute("playsinline", ""); video.tabIndex = -1;
+  screen.append(still, video);
+  const bezel = el("img", "watch-bezel");
+  bezel.src = "/media/watch-bezel-560.webp"; bezel.alt = ""; bezel.width = 560; bezel.height = 880;
+  watch.append(screen, bezel);
+  if (!QUIET && "IntersectionObserver" in window) {
+    video.addEventListener("playing", () => watch.classList.add("is-playing"));
+    new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        if (!video.src) video.src = "/media/watch-record-520.mp4";
+        video.play()?.catch(() => {});
+      } else video.pause();
+    }, { threshold: 0.4 }).observe(watch);
+  }
   const cta = el("a", "pill hook-cta", "Get Larkin");
   cta.href = "https://getlarkin.com/?utm_source=shared-notes&utm_medium=link&utm_content=hook";
-  const questions = el("ul", "hook-questions");
-  for (const [where, question] of [["At work", "Did your point land in the meeting?"], ["At home", "Were you listening, or waiting to talk?"],
-    ["With friends", "Who did most of the talking?"]]) {
-    const item = el("li");
-    item.append(el("span", "side-label", where), el("span", "hook-question", hold(question)));
-    questions.append(item);
-  }
   // The words in their own column, so a wide page puts them beside the watch, as on getlarkin.com.
   const copy = el("div", "hook-copy");
   copy.append(el("p", "caps hook-eyebrow", "Your turn"), el("h2", "hook-title", hold("Know how you come across, everywhere you talk.")),
-    el("p", "sentence soft", hold("Larkin answers questions like these after every conversation, for you alone.")), questions, cta);
+    el("p", "sentence soft", hold("Larkin listens with you in meetings, at home and with friends, then tells you what landed, what to work on and what to try next. Only you see it.")), cta);
   hook.append(watch, copy);
   nodes.push(hook);
 
