@@ -184,13 +184,12 @@ function talkedTile(talked, name) {
 // Side by side (28 October 2026), read by the other person: the sharer by name and "you", the same
 // tiles and sentence rules as the app's. Grey tags, the sharer in periwinkle and the reader in amber
 // (Julien, 29 October 2026; Figma "Oct 29 Conversation final (Claude)").
-function sideBySideTiles(raw, name) {
+function sideBySideTiles(raw, name, context) {
   if (!raw || typeof raw !== "object") return [];
   const num = v => typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0;
   const pair = o => ({ me: num(o?.you), you: num(o?.them) });
-  const talk = pair(raw.talk), longest = pair(raw.longest), pace = pair(raw.pace), softening = pair(raw.softening);
+  const talk = pair(raw.talk), longest = pair(raw.longest), pace = pair(raw.pace);
   const replies = { ...pair(raw.replies), quick: num(raw.replies?.quick) };
-  const shared = raw.shared && str(raw.shared.word) ? { word: raw.shared.word, ...pair(raw.shared) } : null;
   const fillers = (Array.isArray(raw.fillers) ? raw.fillers : []).filter(f => str(f?.word)).slice(0, 5).map(f => ({ word: f.word, ...pair(f) }));
   if (talk.me + talk.you <= 0) return [];
   const who = name ?? "They";
@@ -282,30 +281,22 @@ function sideBySideTiles(raw, name) {
       };
       const why = scale.why ? cap(scale.why.replaceAll("{name}", name ?? "they")) : null;
       const parts = [scaleRow(scale), verdict(scaleLead(scale), why), said(who, "me", scale.meLines), el("div", "side-hair"), said("You", "you", scale.youLines)];
-      const tile = tagged(tag(AREAS[scale.area], "next"), ...parts);
-      tile.hidden = true;
-      return tile;
+      return tagged(tag(AREAS[scale.area], "next"), ...parts);
     });
     const data = el("div", "side-data");
     data.append(list, keyRow(who, "You"));
     const parts = [lead(talkedLead), data];
-    // The lines behind it as the tile's footer row (Julien, 29 October 2026: button 4).
+    // The lines behind it open on their own page over this one, as in the app (Julien, 29 October 2026).
     if (linesTiles.length) {
       const more = el("button", "side-more");
-      const label = el("span", null, "See the lines behind this");
       more.type = "button";
-      more.setAttribute("aria-expanded", "false");
-      more.append(label, svgChevron());
-      more.addEventListener("click", () => {
-        const open = more.getAttribute("aria-expanded") !== "true";
-        more.setAttribute("aria-expanded", String(open));
-        label.textContent = open ? "Hide the lines" : "See the lines behind this";
-        for (const tile of linesTiles) tile.hidden = !open;
-        if (open) linesTiles[0].scrollIntoView({ behavior: "smooth", block: "nearest" });
-      });
+      more.setAttribute("aria-haspopup", "dialog");
+      more.append(el("span", null, "See the lines behind this"), svgChevron());
+      more.addEventListener("click", () => subpage(context, "How you talked",
+        "Each scale comes from everything you each said. These are the lines Larkin read.", roomy(linesTiles), more));
       parts.push(el("div", "side-hair"), more);
     }
-    tiles.push(tagged(tag("How you talked"), ...parts), ...linesTiles);
+    tiles.push(tagged(tag("How you talked"), ...parts));
   }
 
   const share = talk.me / (talk.me + talk.you);
@@ -357,8 +348,7 @@ function sideBySideTiles(raw, name) {
     return block;
   };
 
-  // Vocabulary (29 October 2026; Figma "Vocabulary · shared page, the friend's own score"): both
-  // numbers, then the reader's own, from this one conversation, and what Larkin would follow.
+  // Vocabulary (29 October 2026): both numbers, the same measure for both.
   const vocab = raw.vocabulary && typeof raw.vocabulary === "object" ? pair(raw.vocabulary) : null;
   if (vocab && vocab.me + vocab.you > 0) {
     const said = raw.words ? pair(raw.words) : null;
@@ -367,12 +357,8 @@ function sideBySideTiles(raw, name) {
     const saidLess = said ? (meLead ? said.me < said.you : said.you < said.me) : false;
     const vocabLead = (top - bottom) / top < 0.05 ? "You both used a similar range of words."
       : `${meLead ? who : "You"} ${saidLess ? "said less, with a wider range of words" : "used the wider range of words"}.`;
-    const yours = el("div", "side-yours");
-    yours.append(el("p", "side-label", "Your score"), el("p", "sentence soft", hold(`This conversation gave you ${Math.round(vocab.you)}.`)),
-      el("p", "sentence soft", hold("Larkin follows your score across all your conversations, so you see where you stand.")));
     tiles.push(tagged(tag("Vocabulary"), lead(vocabLead),
-      numbers([[who, "me", vocab.me], ["You", "you", vocab.you]], "This conversation", "Different words in every 1,000"),
-      el("div", "side-hair"), yours));
+      numbers([[who, "me", vocab.me], ["You", "you", vocab.you]], "This conversation", "Different words in every 1,000")));
   }
 
   // Pace on the range of a published study, as in the app (Julien, 29 October 2026; Figma "Pace ·
@@ -405,16 +391,6 @@ function sideBySideTiles(raw, name) {
   study.append(el("p", "headline", hold(where)), rangeLine([[who, "me", pace.me], ["You", "you", pace.you]], STUDY),
     el("p", "side-unit-small", hold("The range and average of 2,438 recorded phone calls (Yuan, Liberman and Cieri, 2006).")));
   tiles.push(tagged(tag("Pace"), paceWords, paceNums, el("div", "side-hair"), study));
-
-  const soft = softening.me + softening.you < 3 ? null : softening.me > softening.you * 1.15 ? `${name ?? "they"} softened a little more`
-    : softening.you > softening.me * 1.15 ? "you softened a little more" : "you both softened about as much";
-  const wordsLead = shared && soft ? `You both said “${shared.word}”, and ${soft}.` : shared ? `You both said “${shared.word}”.` : soft ? `${cap(soft)}.` : null;
-  if (wordsLead) {
-    const rows = [];
-    if (shared) rows.push([`“${shared.word}”`, shared.me, shared.you]);
-    if (soft) rows.push(["“maybe”, “I\u00a0think”", softening.me, softening.you]);
-    tiles.push(tagged(tag("Same words"), lead(wordsLead), table(null, rows)));
-  }
 
   const fast = replies.me < 0.5 && replies.you < 0.5;
   const track = el("div", "side-track");
@@ -472,6 +448,47 @@ function rangeLine(marks, range) {
   };
   if (typeof ResizeObserver === "function") new ResizeObserver(place).observe(node);
   return node;
+}
+
+/// A page over the shared page (How you talked's lines): back closes it, as does Escape or the
+/// browser's back; the page under it keeps its place.
+function subpage(context, title, intro, tiles, opener) {
+  const sheet = el("div", "subpage");
+  sheet.setAttribute("role", "dialog");
+  sheet.setAttribute("aria-modal", "true");
+  sheet.setAttribute("aria-label", title);
+  const back = el("button", "subpage-back");
+  back.type = "button";
+  back.setAttribute("aria-label", "Back");
+  const icon = svg("svg", { viewBox: "0 0 10 16", width: "10", height: "16", "aria-hidden": "true" });
+  icon.append(svg("path", { d: "M8 2 L2 8 L8 14" }));
+  back.append(icon);
+  const head = el("header", "head subpage-head");
+  if (context) head.append(el("p", "meta", context));
+  head.append(el("h1", null, title), el("p", "summary soft", hold(intro)));
+  const body = el("div", "column subpage-body");
+  body.append(back, head, panel(tiles));
+  sheet.append(body);
+  let closed = false;
+  const close = (fromHistory) => {
+    if (closed) return;
+    closed = true;
+    sheet.remove();
+    document.body.classList.remove("has-subpage");
+    window.removeEventListener("popstate", onPop);
+    document.removeEventListener("keydown", onKey);
+    if (!fromHistory) history.back();
+    opener?.focus();
+  };
+  const onPop = () => close(true);
+  const onKey = event => { if (event.key === "Escape") close(false); };
+  back.addEventListener("click", () => close(false));
+  history.pushState({ subpage: true }, "", location.href);
+  window.addEventListener("popstate", onPop);
+  document.addEventListener("keydown", onKey);
+  document.body.append(sheet);
+  document.body.classList.add("has-subpage");
+  back.focus();
 }
 
 function show(...nodes) {
@@ -793,7 +810,7 @@ function render(notes) {
   // notes: they are what the people in the conversation came for, and always shared.
   const template = str(notes.template) ?? (Array.isArray(notes.sections) && notes.sections.length ? "Notes" : "Short notes");
   const notesPanel = panel(notesTiles.length ? notesTiles : [el("p", "empty", "No notes for this conversation.")]);
-  let side = sideBySideTiles(notes.sideBySide, name);
+  let side = sideBySideTiles(notes.sideBySide, name, [notes.title, str(notes.when)].filter(Boolean).join(" · "));
   // More than two people (29 October 2026): the tab says so, as in the app.
   if (!side.length && Number.isInteger(notes.sideBySidePeople) && notes.sideBySidePeople >= 3) {
     side = [tagged(tag("Side by side"), el("p", "verdict lead",

@@ -436,5 +436,16 @@ body.motion .report-line .word.on { opacity: 1; }
   border: 0; background: none; color: var(--ink); font: inherit; font-size: 16px; line-height: 21px; font-weight: 500; text-align: left; cursor: pointer;
 }
 .chevron { flex: none; fill: none; stroke: var(--ink-muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+/* How you talked's lines, on their own page over the shared page (29 October 2026). */
+body.has-subpage { overflow: hidden; }
+.subpage { position: fixed; inset: 0; z-index: 50; overflow-y: auto; background: var(--surface); overscroll-behavior: contain; }
+.subpage-body { display: grid; gap: 14px; align-content: start; padding-top: max(16px, env(safe-area-inset-top)); padding-bottom: 64px; }
+.subpage-back {
+  justify-self: start; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--tile); color: var(--ink);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.subpage-back svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.subpage-head { padding-top: 12px; }
+.subpage-head .summary { margin-top: 2px; }
 .side-note { font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); padding: 0 6px; margin-bottom: -4px; }
 
