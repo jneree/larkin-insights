@@ -411,6 +411,19 @@ body.motion .report-line .word.on { opacity: 1; }
 .side-dot.you, .side-dot.me { box-shadow: 0 0 0 2px var(--tile); }
 .side-ends { display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); margin-top: -8px; }
 
+/* Pace on a study's range (29 October 2026): the range darker, its average a tick, each person's dot. */
+.range { display: grid; gap: 7px; }
+.range-labels { position: relative; height: 18px; }
+.range-label { position: absolute; top: 0; white-space: nowrap; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--ink); }
+.range-labels.under .range-label { font-weight: 480; color: var(--ink-muted); }
+.range-line { position: relative; height: 12px; }
+.range-rail { position: absolute; left: 0; right: 0; top: 5px; height: 2px; border-radius: 1px; background: var(--hairline); }
+.range-band { position: absolute; top: 3px; height: 6px; border-radius: 3px; background: var(--rail); }
+.range-tick { position: absolute; top: 0; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--ink-muted); }
+.range-dot { width: 12px; height: 12px; }
+.range-ends { margin-top: 5px; }
+.side-unit-small { font-size: 13px; line-height: 18px; font-weight: 480; color: var(--ink-muted); }
+
 /* Side by side: each scale's lines behind How you talked, and who was left out (29 October 2026). */
 .side-lines { display: grid; gap: 8px; }
 .side-line { font-size: 16px; line-height: 21px; font-weight: 480; overflow-wrap: anywhere; }

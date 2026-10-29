@@ -375,9 +375,25 @@ function sideBySideTiles(raw, name) {
       el("div", "side-hair"), yours));
   }
 
-  const high = Math.max(pace.me, pace.you), low = Math.min(pace.me, pace.you);
-  const paceLead = !high || (high - low) / high <= 0.08 ? "You matched each other’s pace." : `${pace.me > pace.you ? who : "You"} spoke faster.`;
-  tiles.push(tagged(tag("Pace"), lead(paceLead), numbers([[who, "me", pace.me], ["You", "you", pace.you]], null, "Words a minute while you each speak.")));
+  // Pace on the range of a published study, as in the app (29 October 2026), and the two falling into
+  // each other's pace between the first and second half (Manson, Bryant, Gervais and Kline, 2013).
+  const same = p => { const hi = Math.max(p.me, p.you), lo = Math.min(p.me, p.you); return !hi || (hi - lo) / hi <= 0.08; };
+  const halves = raw.paceHalves && typeof raw.paceHalves === "object" ? { first: pair(raw.paceHalves.first), second: pair(raw.paceHalves.second) } : null;
+  const before = halves ? Math.abs(halves.first.me - halves.first.you) : 0, after = halves ? Math.abs(halves.second.me - halves.second.you) : 0;
+  const converged = !!halves && before > 0 && after <= before * 2 / 3 && same(halves.second);
+  const paceLead = same(pace) ? "You spoke at the same pace." : `${pace.me > pace.you ? who : "You"} spoke faster.`;
+  const paceDetail = !converged ? null : same(pace) ? "You fell into each other’s pace as you talked. A study found that people who do this cooperate more."
+    : "You moved closer to each other’s pace as you talked.";
+  const STUDY = { low: 158, average: 236, high: 312 };
+  const zone = v => v < STUDY.average * 0.93 ? "slower than" : v > STUDY.average * 1.07 ? "faster than" : "close to";
+  const [zMe, zYou] = [zone(pace.me), zone(pace.you)];
+  const where = zMe === zYou ? `Both of you were ${zMe} the average of ${STUDY.average}.`
+    : `${name ?? "They"} ${name ? "was" : "were"} ${zMe} the average of ${STUDY.average}; you were ${zYou} it.`;
+  const study = el("div", "side-yours");
+  study.append(el("p", "sentence soft", hold(where)), rangeLine([[who, "me", pace.me], ["You", "you", pace.you]], STUDY, ["Slower", "Faster"]),
+    el("p", "side-unit-small", hold("The range and average of 2,438 recorded phone calls (Yuan, Liberman and Cieri, 2006).")));
+  tiles.push(tagged(tag("Pace"), lead(paceLead, paceDetail), numbers([[who, "me", pace.me], ["You", "you", pace.you]], null, "Words a minute while you each speak."),
+    el("div", "side-hair"), study));
 
   const soft = softening.me + softening.you < 3 ? null : softening.me > softening.you * 1.15 ? `${name ?? "they"} softened a little more`
     : softening.you > softening.me * 1.15 ? "you softened a little more" : "you both softened about as much";
@@ -405,6 +421,51 @@ function sideBySideTiles(raw, name) {
   tiles.push(tagged(tag("Replies"), fast ? lead("No dead air.", replies.quick ? `You both answered in under half a second: ${replies.quick} replies came without a pause.` : null)
     : lead(`${replies.me <= replies.you ? who : "You"} answered faster.`), replyData));
   return tiles;
+}
+
+/// A study's range on one line: a darker stretch with its ends and average under it, each person's dot
+/// with their number above, the labels pushed apart when the dots are close.
+function rangeLine(marks, range, ends) {
+  const values = marks.map(m => m[2]);
+  const room = (range.high - range.low) * 0.1;
+  const low = Math.min(range.low - room, Math.min(...values) - room), high = Math.max(range.high + room, Math.max(...values) + room);
+  const at = v => (v - low) / (high - low);
+  const node = el("div", "range");
+  node.setAttribute("role", "img");
+  node.setAttribute("aria-label", `${marks.map(([label, , v]) => `${label} ${Math.round(v)}`).join(", ")}; study range ${range.low} to ${range.high}, average ${range.average}`);
+  const above = el("div", "range-labels"), line = el("div", "range-line"), under = el("div", "range-labels under");
+  line.append(el("span", "range-rail"));
+  const band = el("span", "range-band");
+  band.style.left = `${at(range.low) * 100}%`; band.style.width = `${(at(range.high) - at(range.low)) * 100}%`;
+  const tick = el("span", "range-tick"); tick.style.left = `${at(range.average) * 100}%`;
+  line.append(band, tick);
+  const tops = marks.map(([label, tone, value]) => {
+    const dot = el("span", `side-dot range-dot ${tone}`); dot.style.left = `calc(${at(value) * 100}% - 6px)`; line.append(dot);
+    const text = el("span", "range-label", `${label} ${Math.round(value)}`); above.append(text);
+    return [text, at(value)];
+  });
+  const bottoms = [[`${range.low}`, at(range.low)], [`Average ${range.average}`, at(range.average)], [`${range.high}`, at(range.high)]].map(([t, x]) => {
+    const text = el("span", "range-label", t); under.append(text); return [text, x];
+  });
+  const endsRow = el("div", "side-ends range-ends"); endsRow.append(el("span", null, ends[0]), el("span", null, ends[1]));
+  node.append(above, line, under, endsRow);
+  // Centre each label on its point, inside the line and 10 apart, once the width is known.
+  const place = () => {
+    const width = node.clientWidth;
+    if (!width) return;
+    for (const group of [tops, bottoms]) {
+      const spans = group.map(([text, x]) => ({ text, w: text.offsetWidth, left: x * width - text.offsetWidth / 2 })).sort((a, b) => a.left - b.left);
+      for (let i = 1; i < spans.length; i++) {
+        const overlap = spans[i - 1].left + spans[i - 1].w + 10 - spans[i].left;
+        if (overlap > 0) { spans[i - 1].left -= overlap / 2; spans[i].left += overlap / 2; }
+      }
+      for (const span of spans) span.left = Math.min(Math.max(0, span.left), width - span.w);
+      for (let i = 1; i < spans.length; i++) spans[i].left = Math.max(spans[i].left, spans[i - 1].left + spans[i - 1].w + 10);
+      for (const span of spans) span.text.style.left = `${span.left}px`;
+    }
+  };
+  if (typeof ResizeObserver === "function") new ResizeObserver(place).observe(node);
+  return node;
 }
 
 function show(...nodes) {
