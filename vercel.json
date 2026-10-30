@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/n/:code", "destination": "/api/n?code=:code" },
+    { "source": "/og/:code", "destination": "/api/og?code=:code" }
+  ]
+}

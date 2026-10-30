@@ -896,7 +896,8 @@ function render(notes) {
 }
 
 async function load() {
-  const code = location.hash.slice(1);
+  // "/n/<code>" links carry their own preview (30 October 2026); "#<code>" links still work.
+  const code = location.hash.slice(1) || (/^\/n\/([A-Za-z0-9_-]{22})\/?$/.exec(location.pathname) ?? [])[1] || "";
   document.title = "Conversation notes · Larkin";
   if (!code) {
     return state("Notes shared from Larkin.", "Open the full link you were sent to read the notes.");
