@@ -839,8 +839,13 @@ function render(notes) {
         body.hidden = !selected;
       }
     };
+    // Switched while scrolled down: the new section starts right under the pills.
+    const reveal = body => {
+      const gap = body.getBoundingClientRect().top - (tabs.getBoundingClientRect().bottom - 16);
+      if (gap < 0) window.scrollBy({ top: gap, behavior: QUIET ? "auto" : "smooth" });
+    };
     for (const [id, button, body] of tabsList) {
-      button.addEventListener("click", () => select(button));
+      button.addEventListener("click", () => { select(button); reveal(body); });
       button.id = `tab-${id}`; body.id = `panel-${id}`;
       button.setAttribute("aria-controls", body.id); body.setAttribute("role", "tabpanel"); body.setAttribute("aria-labelledby", button.id);
       tabs.append(button);

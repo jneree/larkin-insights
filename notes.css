@@ -172,7 +172,14 @@ h1 { font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.01
 .bullets.sub li { color: var(--ink-muted); }
 
 /* Insights and the notes: two pills, the one that's on filled with ink. */
-.pills { display: flex; gap: 10px; padding: 6px 16px 0 0; margin-right: -16px; overflow-x: auto; scrollbar-width: none; }
+/* The pills stay at the top while the page scrolls (Julien, 30 October 2026), so the notes are never
+   out of reach; the page's colour fades out below them over what passes underneath. */
+.pills {
+  display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none;
+  position: sticky; top: 0; z-index: 5;
+  margin: 0 -16px -16px; padding: max(10px, env(safe-area-inset-top)) 16px 26px;
+  background: linear-gradient(to bottom, var(--surface) calc(100% - 26px), transparent);
+}
 .pills::-webkit-scrollbar { display: none; }
 .tab { flex: none; }
 .tab {
