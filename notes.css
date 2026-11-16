@@ -163,6 +163,11 @@ h1 { font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.01
 .verdict, .sentence { font-size: 16px; line-height: 21px; font-weight: 480; overflow-wrap: anywhere; }
 .verdict strong, .verdict.lead { font-weight: 500; color: var(--ink); }
 .soft { color: var(--ink-muted); }
+/* Larkin's read (17 November 2026): each paragraph's main idea in bold, then the rest in ink. */
+.read-paragraphs { display: grid; gap: 12px; }
+.read-paragraph { font-size: 16px; line-height: 21px; font-weight: 480; color: var(--ink); overflow-wrap: anywhere; }
+.read-paragraph strong { font-weight: 700; }
+.read-foot { font-size: 13px; line-height: 18px; color: var(--ink-muted); padding: 0 6px; }
 
 /* The notes' bullets: a grey dot, 8 from the words; sub-points indented 18, in grey. */
 .bullets { display: grid; gap: 6px; }

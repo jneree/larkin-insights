@@ -756,6 +756,39 @@ function reveal(sections) {
   sections.forEach(section => observer.observe(section));
 }
 
+// Larkin's read (Julien, 17 November 2026), when the sharer chose to share it: written to them
+// ("you"), so its tags say whose it is, as the insights' do. Each paragraph opens on its main idea
+// in bold, so the read can be skimmed; the bottom line is all bold.
+function readParagraph(item) {
+  const lead = str(item?.lead), rest = str(item?.rest);
+  const node = el("p", "read-paragraph");
+  if (lead) node.append(el("strong", null, rest ? lead : hold(lead)));
+  if (rest) node.append(document.createTextNode(lead ? " " : ""), hold(rest));
+  return node;
+}
+const READ_LEVELS = { gentle: "Gentle", honest: "Honest", unleashed: "Unleashed" };
+function readTiles(raw, name) {
+  if (!raw || typeof raw !== "object") return null;
+  const list = value => (Array.isArray(value) ? value : []).filter(p => p && (str(p.lead) || str(p.rest)));
+  const you = list(raw.you), them = list(raw.them), next = list(raw.next);
+  if (!you.length || !next.length) return null;
+  const body = items => { const node = el("div", "read-paragraphs"); node.append(...items.map(readParagraph)); return node; };
+  const tiles = [tagged(tag(name ? `How ${name} came across` : "How they came across"), body(you))];
+  if (them.length) {
+    // "your friends" is the sharer's: "Julien’s friends".
+    const others = str(raw.themName)?.replace(/^your\b/i, name ? `${name}’s` : "their") ?? "the others";
+    tiles.push(tagged(tag(`How ${others} came across`), body(them)));
+  }
+  const steps = body(next);
+  const bottom = str(raw.bottomLine);
+  if (bottom) steps.append(el("div", "side-hair"), readParagraph({ lead: bottom }));
+  tiles.push(tagged(tag(name ? `What ${name} should be doing next` : "What to do next", "next"), steps));
+  const level = READ_LEVELS[raw.level];
+  const foot = el("p", "read-foot",
+    hold(`Larkin’s read${name ? ` for ${name}` : ""}${level ? `, written at ${level}` : ""}. Larkin read the words, not the voices, so it can’t judge tone.`));
+  return { tiles, foot };
+}
+
 function render(notes) {
   if (notes.kind === "report") return renderReport(notes);
   const name = str(notes.sharedBy);
@@ -825,6 +858,8 @@ function render(notes) {
   // Side by side when it was shared (the part the other person came for), otherwise on the notes.
   const tabsList = [];
   if (insights.length) tabsList.push(["insights", pill("Insights", null), panel(roomy(insights))]);
+  const read = readTiles(notes.read, name);
+  if (read) tabsList.push(["read", pill("Larkin’s read", null), panel([...roomy(read.tiles), read.foot])]);
   if (side.length) tabsList.push(["side-by-side", pill("Side by side", null), panel(roomy(side))]);
   tabsList.push(["notes", pill(template, TEMPLATE_ICONS[template.toLowerCase()] ?? "notes"), notesPanel]);
   const nodes = [head];
